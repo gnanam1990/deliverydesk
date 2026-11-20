@@ -3,7 +3,7 @@
 Initial state: greenfield dedicated repository. One prior commit carried the
 specification pack only (`docs/build-pack/`); no implementation existed.
 
-- Target repository / branch / tested SHA: `deliverydesk` workspace, branch `devin/deliverydesk`, `15c9e30e69970f9e75a2e19776c2721d01611685`
+- Target repository / branch / tested SHA: `deliverydesk` workspace, branch `devin/deliverydesk`, `6faf1eed02c19ba6ddb5f227e25222dcba8d2da4`
 - Current state: M01–M07 accepted; local field-trial packaging complete. Remaining gap is external live-provider proof only.
 - Working tree requiring transfer: none after the final progress commit
 - Tested environment: macOS arm64 (Darwin 27.2.0), Node v22.23.1, SQLite via `node:sqlite`, zero runtime dependencies
@@ -43,7 +43,7 @@ Evidence: `build-progress/deliverydesk/evidence/acceptance-local.json`.
 - `15c9e30`: normal browser controls now cover the missing journey — `/buyer` opens a case by external order ID, the case issues a short-lived grant, `/cases/{id}/retrieve` provides a real artifact download and receipt confirmation, and browser errors render accessible HTML (`Sign in required`, `Access denied`, `Page not found`).
 - `npm run check:browser` starts a disposable seeded web-only app on an ephemeral port and drives Chromium through buyer retrieval, operator timeline, reload persistence, permissions, keyboard focus, and 320px layout. Setup and exact replay command are in `build-progress/deliverydesk/BROWSER.md`. The `design-taste-frontend` checklist informed the accessibility/browser review; its full visual gate was not runnable after Chromium launch was denied.
 - Current environment result: Chromium headless shell 1254 exists at the requested Playwright cache path, but this command sandbox denied Chromium's `MachPortRendezvousServer` bootstrap before launch. The concise blocked evidence is `build-progress/deliverydesk/evidence/browser-e7.json`; replay `DD_BROWSER_PATH=... npm run check:browser` on the host for normal-browser proof.
-- Regression proof in this environment: `node --test test/m06-console.test.ts` passes `normal browser forms recover, download and acknowledge delivery`; `npm ci`, `npm run typecheck`, and `npm test` pass with 19 tests.
+- `6faf1ee`: host-browser feedback fixed the ambiguous Provider receipt locator by scoping it to the timeline card and asserting exactly one matching link. Regression proof in this environment: `node --test test/m06-console.test.ts` passes `normal browser forms recover, download and acknowledge delivery`; `npm ci`, `npm run typecheck`, and `npm test` pass with 19 tests.
 
 ## Remaining external proof gap
 

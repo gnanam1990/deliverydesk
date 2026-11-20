@@ -17,7 +17,7 @@
     "provider secrets",
     "temporary data path"
   ],
-  "testedSha": "15c9e30e69970f9e75a2e19776c2721d01611685",
+  "testedSha": "6faf1eed02c19ba6ddb5f227e25222dcba8d2da4",
   "verification": {
     "command": "npm run check:browser",
     "explicitBrowserCommand": "DD_BROWSER_PATH=\"$HOME/Library/Caches/ms-playwright/chromium_headless_shell-1254/chrome-headless-shell-mac-arm64/chrome-headless-shell\" npm run check:browser",
@@ -25,6 +25,7 @@
       "npm ci"
     ],
     "hostBrowserProof": "pending host replay outside this command sandbox",
-    "regressionCoverage": "node --test test/m06-console.test.ts \u2192 normal browser forms recover, download and acknowledge delivery PASS"
+    "regressionCoverage": "node --test test/m06-console.test.ts \u2192 normal browser forms recover, download and acknowledge delivery PASS",
+    "locatorFix": "Provider receipt is scoped to section[aria-labelledby=\"timeline-title\"] and asserted as exactly one timeline link"
   }
 }

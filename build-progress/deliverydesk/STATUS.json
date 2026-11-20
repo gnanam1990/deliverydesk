@@ -1,7 +1,7 @@
 {
   "project": "DeliveryDesk",
   "packVersion": "1.0",
-  "testedSha": "15c9e30e69970f9e75a2e19776c2721d01611685",
+  "testedSha": "6faf1eed02c19ba6ddb5f227e25222dcba8d2da4",
   "targetBranch": "devin/deliverydesk",
   "environment": {
     "os": "macOS arm64 (Darwin 27.2.0)",
@@ -142,7 +142,8 @@
       "npm ci \u2192 exit 0 after playwright-core dev dependency",
       "npm run typecheck \u2192 exit 0",
       "npm test \u2192 19 pass / 0 fail",
-      "npm run check:browser \u2192 environment-blocked before launch; exact replay command in BROWSER.md"
+      "npm run check:browser \u2192 environment-blocked before launch; exact replay command in BROWSER.md",
+      "host-browser locator review \u2192 timeline-scoped Provider receipt control fixed at 6faf1eed02c19ba6ddb5f227e25222dcba8d2da4"
     ],
     "evidence": "build-progress/deliverydesk/evidence/acceptance-local.json",
     "browser": {
