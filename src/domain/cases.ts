@@ -478,7 +478,7 @@ export interface CaseView {
   evidenceNote: string | null;
   createdAt: string;
   closedAt: string | null;
-  payment: { state: string; rail: string; transferRef: string; confirmedAt: string | null } | null;
+  payment: { id: string; state: string; rail: string; transferRef: string; confirmedAt: string | null } | null;
   fulfillment: { revision: number; state: string; artifactDigest: string | null; evidenceNote: string | null } | null;
   retrieval: { id: string; state: string; bytesTransferred: number; digest: string } | null;
   refund: { id: string; state: string; amountMinor: number; asset: string } | null;
@@ -523,6 +523,7 @@ export function caseView(db: Db, c: Case): CaseView {
     closedAt: c.closed_at,
     payment: payment
       ? {
+          id: payment.id,
           state: payment.state,
           rail: payment.rail,
           transferRef: payment.transfer_ref,

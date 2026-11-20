@@ -25,7 +25,9 @@ import {
 } from '../../domain/cases.ts';
 import { getOrder, lookupOrderByExternal } from '../../domain/orders.ts';
 import { readArtifact } from '../../domain/artifacts.ts';
-import type { Case, Order } from '../../domain/types.ts';
+import { caseEvidenceTimeline, consoleCaseQueue } from '../../domain/console.ts';
+import { wantsHtml, renderCasePage, renderConsoleQueue, renderBuyerIndex } from '../render.ts';
+import type { Case, Order, Payment } from '../../domain/types.ts';
 import type { Ctx } from '../server.ts';
 
 function orderOf(ctx: Ctx): Order {
@@ -107,13 +109,39 @@ export function registerCaseRoutes(app: App): void {
 
   app.route('GET', '/cases/{id}', {
     auth: { kind: 'buyer' },
-    handler: (ctx) => ({ status: 200, json: caseView(ctx.db, caseOf(ctx)) }),
+    handler: (ctx) => {
+      const c = caseOf(ctx);
+      const view = caseView(ctx.db, c);
+      if (wantsHtml(ctx.headers, ctx.query)) {
+        return {
+          status: 200,
+          html: renderCasePage(view, caseEvidenceTimeline(ctx.db, c, { operator: false }), {
+            audience: 'buyer',
+          }),
+        };
+      }
+      return { status: 200, json: view };
+    },
   });
 
-  // Operator-side case read (merchant tenant scoped).
+  // Operator-side case read (merchant tenant scoped). Browsers receive the
+  // stable internal record page; API clients receive the JSON view.
   app.route('GET', '/console/cases/{id}', {
     auth: { kind: 'operator' },
-    handler: (ctx) => ({ status: 200, json: caseView(ctx.db, caseOf(ctx)) }),
+    handler: (ctx) => {
+      const c = caseOf(ctx);
+      const view = caseView(ctx.db, c);
+      if (wantsHtml(ctx.headers, ctx.query)) {
+        return {
+          status: 200,
+          html: renderCasePage(view, caseEvidenceTimeline(ctx.db, c, { operator: true }), {
+            audience: 'operator',
+            providerReceiptHref: view.payment ? `/console/payments/${view.payment.id}/receipt` : undefined,
+          }),
+        };
+      }
+      return { status: 200, json: view };
+    },
   });
 
   app.route('GET', '/cases', {
@@ -124,20 +152,115 @@ export function registerCaseRoutes(app: App): void {
     }),
   });
 
-  app.route('GET', '/console/cases', {
-    auth: { kind: 'operator' },
+  // Buyer case index for normal browser entry.
+  app.route('GET', '/buyer', {
+    auth: { kind: 'buyer' },
     handler: (ctx) => ({
       status: 200,
-      json: listCasesForMerchant(ctx.db, ctx.actor!.merchantId!).map((c) =>
-        caseView(ctx.db, c),
+      html: renderBuyerIndex(
+        listCasesForBuyer(ctx.db, ctx.actor!.id).map((c) => ({
+          id: c.id,
+          externalOrderId: one<{ external_order_id: string }>(
+            ctx.db,
+            'SELECT external_order_id FROM orders WHERE id = ?',
+            c.order_id,
+          )!.external_order_id,
+          state: c.state,
+          reason: c.reason,
+        })),
       ),
     }),
+  });
+
+  // Operator work queue: ownership and stale filters are durable, not a
+  // client-side convenience.
+  app.route('GET', '/console', {
+    auth: { kind: 'operator' },
+    handler: (ctx) => {
+      const staleBefore = new Date(Date.now() - ctx.config.caseStaleMs).toISOString();
+      const rows = consoleCaseQueue(ctx.db, ctx.actor!.merchantId!, {
+        staleOnly: ctx.query.get('stale') === '1',
+        mine: ctx.query.get('mine') === '1' ? ctx.actor!.id : undefined,
+        staleBefore,
+      });
+      return {
+        status: 200,
+        html: renderConsoleQueue(rows, {
+          stale: ctx.query.get('stale') === '1',
+          mine: ctx.query.get('mine') === '1',
+        }),
+      };
+    },
+  });
+
+  app.route('GET', '/console/cases', {
+    auth: { kind: 'operator' },
+    handler: (ctx) => {
+      const staleBefore = new Date(Date.now() - ctx.config.caseStaleMs).toISOString();
+      if (ctx.query.get('stale') === '1' || ctx.query.get('mine') === '1') {
+        return {
+          status: 200,
+          json: consoleCaseQueue(ctx.db, ctx.actor!.merchantId!, {
+            staleOnly: ctx.query.get('stale') === '1',
+            mine: ctx.query.get('mine') === '1' ? ctx.actor!.id : undefined,
+            staleBefore,
+          }),
+        };
+      }
+      return {
+        status: 200,
+        json: listCasesForMerchant(ctx.db, ctx.actor!.merchantId!).map((c) =>
+          caseView(ctx.db, c),
+        ),
+      };
+    },
+  });
+
+  // Provider receipt evidence is operator-only; buyers never receive this link.
+  app.route('GET', '/console/payments/{id}/receipt', {
+    auth: { kind: 'operator' },
+    handler: (ctx) => {
+      const p = one<Payment>(
+        ctx.db,
+        'SELECT * FROM payments WHERE id = ? AND merchant_id = ?',
+        ctx.params['id']!,
+        ctx.actor!.merchantId!,
+      );
+      if (!p) throw notFound('payment not found');
+      return {
+        status: 200,
+        json: {
+          paymentId: p.id,
+          orderId: p.order_id,
+          provider: 'local-emulator',
+          rail: p.rail,
+          transferRef: p.transfer_ref,
+          eventIndex: p.event_index,
+          amountMinor: p.amount_minor,
+          asset: p.asset,
+          invoiceRef: p.invoice_ref,
+          receiptHash: p.receipt_hash,
+          state: p.state,
+          confirmedAt: p.confirmed_at,
+        },
+      };
+    },
   });
 
   // --- Buyer: refresh / redelivery / retrieval / acknowledge ------------
   app.route('POST', '/cases/{id}/refresh', {
     auth: { kind: 'buyer' },
-    handler: (ctx) => ({ status: 200, json: caseView(ctx.db, refreshCase(ctx.db, ctx.actor!, ctx.params['id']!)) }),
+    handler: (ctx) => {
+      const view = caseView(ctx.db, refreshCase(ctx.db, ctx.actor!, ctx.params['id']!));
+      if (wantsHtml(ctx.headers, ctx.query)) {
+        return {
+          status: 303,
+          headers: { location: `/cases/${ctx.params['id']}` },
+          html: '',
+        };
+      }
+      return { status: 200, json: view };
+    },
   });
 
   app.route('POST', '/cases/{id}/redelivery', {

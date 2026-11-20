@@ -83,6 +83,8 @@ export async function createMerchantSim(opts: { port?: number } = {}): Promise<M
       if (r) r.state = 'settled';
     },
     async close() {
+      // Fault-injected hanging requests must not keep suite teardown alive.
+      sim.server.closeAllConnections?.();
       await new Promise<void>((res) => sim.server.close(() => res()));
     },
   };
@@ -152,7 +154,10 @@ export async function createMerchantSim(opts: { port?: number } = {}): Promise<M
       refunds.set(ref.refund_ref, ref);
       if (faults.refundTimeout) {
         // Record then hang: the client's timeout sees an ambiguous dispatch.
-        await new Promise((r2) => setTimeout(r2, 30_000));
+        await new Promise((r2) => {
+          const timer = setTimeout(r2, 30_000);
+          timer.unref();
+        });
         return json(res, 200, { refund_ref: ref.refund_ref, state: ref.state });
       }
       if (faults.refundAmbiguous) {

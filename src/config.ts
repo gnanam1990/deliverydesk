@@ -18,6 +18,10 @@ export type Config = {
   maxArtifactBytes: number;
   /** Signature freshness window for connector callbacks, ms. */
   callbackSkewMs: number;
+  /** Provider timeout for merchant/refund adapter calls, ms. */
+  providerTimeoutMs: number;
+  /** Open cases older than this are flagged stale in the console, ms. */
+  caseStaleMs: number;
 };
 
 const dataDir = process.env.DD_DATA_DIR ?? path.resolve(process.cwd(), 'data');
@@ -37,6 +41,8 @@ export function loadConfig(overrides: Partial<Config> = {}): Config {
     maxBodyBytes: Number(process.env.DD_MAX_BODY_BYTES ?? 1_048_576),
     maxArtifactBytes: Number(process.env.DD_MAX_ARTIFACT_BYTES ?? 32 * 1024 * 1024),
     callbackSkewMs: Number(process.env.DD_CALLBACK_SKEW_MS ?? 5 * 60 * 1000),
+    providerTimeoutMs: Number(process.env.DD_PROVIDER_TIMEOUT_MS ?? 3000),
+    caseStaleMs: Number(process.env.DD_CASE_STALE_MS ?? 30 * 60 * 1000),
     ...overrides,
   };
 }

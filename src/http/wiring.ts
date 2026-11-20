@@ -5,6 +5,7 @@ import { registerCoreRoutes } from './routes/core.ts';
 import { registerConnectorRoutes } from './routes/connectors.ts';
 import { registerCaseRoutes } from './routes/cases.ts';
 import { registerRefundRoutes } from './routes/refunds.ts';
+import { registerUiRoutes } from './routes/ui.ts';
 import { registerDomainEventHandlers } from '../domain/events.ts';
 import type http from 'node:http';
 
@@ -16,6 +17,7 @@ export function buildApp(db: Db, config: Config): App {
   registerConnectorRoutes(app);
   registerCaseRoutes(app);
   registerRefundRoutes(app);
+  registerUiRoutes(app);
   return app;
 }
 

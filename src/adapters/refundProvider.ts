@@ -57,7 +57,7 @@ export async function dispatchRefund(
         amount_minor: input.amountMinor,
         asset: input.asset,
       }),
-      signal: AbortSignal.timeout(3000),
+      signal: AbortSignal.timeout(config.providerTimeoutMs),
     });
   } catch (e) {
     if ((e as Error).name === 'TimeoutError' || (e as Error).name === 'AbortError') {
@@ -85,7 +85,7 @@ export async function checkSettlement(
   const url = new URL(`/refunds/${encodeURIComponent(refundRef)}`, base);
   let res: Response;
   try {
-    res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+    res = await fetch(url, { signal: AbortSignal.timeout(config.providerTimeoutMs) });
   } catch {
     return 'unknown';
   }

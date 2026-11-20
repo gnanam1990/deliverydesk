@@ -11,6 +11,8 @@ import { notFound as nf, unauthorized } from '../domain/errors.ts';
 export interface HandlerResult {
   status: number;
   json?: unknown;
+  /** Server-rendered HTML page. */
+  html?: string;
   headers?: Record<string, string>;
   /** Raw byte body (artifact streams). */
   bytes?: Uint8Array | AsyncIterable<Uint8Array>;
@@ -214,6 +216,13 @@ export class App {
           r.onStreamEnd?.(false, written);
         }
       }
+      return;
+    }
+    if (r.html !== undefined) {
+      headers['content-type'] = 'text/html; charset=utf-8';
+      headers['content-security-policy'] ??= "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'";
+      res.writeHead(r.status, headers);
+      res.end(r.html);
       return;
     }
     headers['content-type'] = 'application/json; charset=utf-8';
