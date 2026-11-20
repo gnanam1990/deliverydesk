@@ -174,3 +174,17 @@ export function postEvent(
 export function bearer(t: string): { authorization: string } {
   return { authorization: `Bearer ${t}` };
 }
+
+/** Poll a condition — stream completion and worker ticks are async. */
+export async function waitFor<T>(
+  fn: () => T | undefined | null | false,
+  opts: { timeoutMs?: number; intervalMs?: number; label?: string } = {},
+): Promise<T> {
+  const deadline = Date.now() + (opts.timeoutMs ?? 3000);
+  while (Date.now() < deadline) {
+    const v = fn();
+    if (v) return v;
+    await new Promise((r) => setTimeout(r, opts.intervalMs ?? 25));
+  }
+  throw new Error(`waitFor timed out: ${opts.label ?? 'condition'}`);
+}

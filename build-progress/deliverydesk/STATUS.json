@@ -1,7 +1,7 @@
 {
   "project": "DeliveryDesk",
   "packVersion": "1.0",
-  "testedSha": "3ec3d75fe1116a6465a740e4a77f864f0ff4dd22",
+  "testedSha": "888d2fe9d168806b4b7489b02d68e162e3043a35",
   "targetBranch": "devin/deliverydesk",
   "environment": {
     "os": "macOS arm64 (Darwin 27.2.0)",
@@ -58,17 +58,23 @@
     {
       "id": "M04",
       "title": "Case intake and redelivery",
-      "state": "active",
+      "state": "accepted",
       "owner": "local-agent",
-      "commands": [],
-      "evidence": [],
-      "nextAction": "Deduplicate buyer cases, authorize same-buyer redelivery and implement short-lived grants to the original immutable artifact; record completion receipts or acknowledgment. Persist a fenced retrieval claim before streaming and record the authenticated digest receipt or buyer acknowledgment."
+      "commands": [
+        "node --test test/m04-redelivery.test.ts",
+        "node --test test/*.test.ts"
+      ],
+      "evidence": [
+        "T-007 PASS: case dedupe on reopen; grant->stream->digest receipt -> delivered; 1 payment 0 refunds; timeline has opened/ready/grant/delivered, no grant tokens",
+        "T-008 PASS: copied grant by buyer B -> 403 no claim row; abort mid-stream -> 'interrupted' blocks refund guard and never delivers; resume on same fenced claim -> awaiting_receipt -> acknowledge -> delivered"
+      ],
+      "nextAction": "M05: refund proposals, approval role gate, outbox dispatch via provider adapter, settlement tracking, serialized disposition vs retrievals"
     },
     {
       "id": "M05",
       "title": "Refund decision and settlement",
-      "state": "pending",
-      "owner": null,
+      "state": "active",
+      "owner": "local-agent",
       "commands": [],
       "evidence": [],
       "nextAction": "Build full-refund eligibility, merchant approval, revocation of unconsumed grants and serialized disposition. Track dispatch and settlement distinctly."

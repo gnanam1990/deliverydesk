@@ -3,6 +3,7 @@ import type { Config } from '../config.ts';
 import { App } from './server.ts';
 import { registerCoreRoutes } from './routes/core.ts';
 import { registerConnectorRoutes } from './routes/connectors.ts';
+import { registerCaseRoutes } from './routes/cases.ts';
 import { registerDomainEventHandlers } from '../domain/events.ts';
 import type http from 'node:http';
 
@@ -12,6 +13,7 @@ export function buildApp(db: Db, config: Config): App {
   const app = new App(db, config);
   registerCoreRoutes(app);
   registerConnectorRoutes(app);
+  registerCaseRoutes(app);
   return app;
 }
 

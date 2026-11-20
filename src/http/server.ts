@@ -15,6 +15,8 @@ export interface HandlerResult {
   /** Raw byte body (artifact streams). */
   bytes?: Uint8Array | AsyncIterable<Uint8Array>;
   contentType?: string;
+  /** Called after streaming: complete=false on client abort/mid-stream error. */
+  onStreamEnd?: (complete: boolean, bytesWritten: number) => void;
 }
 
 export interface Ctx {
@@ -151,7 +153,7 @@ export class App {
     };
 
     const result = await def.handler(ctx);
-    this.writeResult(res, result);
+    await this.writeResult(res, result);
   }
 
   private async readBody(req: http.IncomingMessage): Promise<string> {
@@ -174,9 +176,43 @@ export class App {
       res.writeHead(r.status, headers);
       if (r.bytes instanceof Uint8Array) {
         res.end(r.bytes);
-      } else {
-        for await (const chunk of r.bytes) res.write(chunk);
-        res.end();
+        r.onStreamEnd?.(true, r.bytes.byteLength);
+        return;
+      }
+      let written = 0;
+      let settled = false;
+      res.on('close', () => {
+        if (!settled) {
+          settled = true;
+          r.onStreamEnd?.(false, written);
+        }
+      });
+      try {
+        for await (const chunk of r.bytes) {
+          if (res.destroyed || !res.writable) break;
+          res.write(chunk);
+          written += chunk.length;
+          // Let pending socket events (client abort) land between chunks.
+          await new Promise((res2) => setImmediate(res2));
+        }
+        if (settled) return;
+        settled = true;
+        if (!res.destroyed) {
+          res.end();
+          r.onStreamEnd?.(true, written);
+        } else {
+          r.onStreamEnd?.(false, written);
+        }
+      } catch {
+        if (!settled) {
+          settled = true;
+          try {
+            res.end();
+          } catch {
+            /* socket gone */
+          }
+          r.onStreamEnd?.(false, written);
+        }
       }
       return;
     }
