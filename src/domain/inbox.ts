@@ -1,14 +1,21 @@
 import type { Db } from '../db/db.ts';
 import { all, one, tx } from '../db/db.ts';
+import type { Config } from '../config.ts';
 import { newId, sha256 } from '../ids.ts';
 import { now } from '../clock.ts';
 import type { InboxEvent, Merchant } from './types.ts';
+
+/** Shared context available to domain processors. */
+export interface DomainCtx {
+  db: Db;
+  config: Config;
+}
 
 /**
  * Connector event handlers, keyed by event `kind`. M02+ register the
  * domain processors; intake itself only authenticates and persists.
  */
-export type EventHandler = (db: Db, merchant: Merchant, event: ConnectorEvent) => string;
+export type EventHandler = (ctx: DomainCtx, merchant: Merchant, event: ConnectorEvent) => string;
 
 export interface ConnectorEvent {
   event_id: string;
@@ -23,6 +30,10 @@ export function registerEventHandler(kind: string, fn: EventHandler): void {
   handlers.set(kind, fn);
 }
 
+export function handlerFor(kind: string): EventHandler | undefined {
+  return handlers.get(kind);
+}
+
 export interface IngestResult {
   status: 'processed' | 'duplicate' | 'unhandled';
   inboxId: string;
@@ -35,11 +46,11 @@ export interface IngestResult {
  * layer; reordered events are applied by revision rules in the handlers.
  * Called only after signature verification (SECURITY.md).
  */
-export function ingestEvent(db: Db, merchant: Merchant, event: ConnectorEvent): IngestResult {
-  return tx(db, () => {
+export function ingestEvent(ctx: DomainCtx, merchant: Merchant, event: ConnectorEvent): IngestResult {
+  return tx(ctx.db, () => {
     const payloadJson = JSON.stringify(event.payload);
     const prior = one<InboxEvent>(
-      db,
+      ctx.db,
       'SELECT * FROM inbox_events WHERE merchant_id = ? AND event_id = ?',
       merchant.id,
       event.event_id,
@@ -62,7 +73,7 @@ export function ingestEvent(db: Db, merchant: Merchant, event: ConnectorEvent): 
       processed_at: null,
       result: null,
     };
-    db.prepare(
+    ctx.db.prepare(
       `INSERT INTO inbox_events (id, merchant_id, event_id, kind, payload, payload_hash, received_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
     ).run(
@@ -83,14 +94,14 @@ export function ingestEvent(db: Db, merchant: Merchant, event: ConnectorEvent): 
       status = 'unhandled';
     } else {
       try {
-        result = handler(db, merchant, event);
+        result = handler(ctx, merchant, event);
         status = 'processed';
       } catch (e) {
         result = `handler error: ${(e as Error).message}`;
         status = 'unhandled';
       }
     }
-    db.prepare('UPDATE inbox_events SET processed_at = ?, result = ? WHERE id = ?').run(
+    ctx.db.prepare('UPDATE inbox_events SET processed_at = ?, result = ? WHERE id = ?').run(
       status === 'processed' ? now() : null,
       result,
       row.id,

@@ -28,17 +28,22 @@
     {
       "id": "M02",
       "title": "Payment matching",
-      "state": "pending",
-      "owner": null,
-      "commands": [],
-      "evidence": [],
-      "nextAction": "Parse a verified connector receipt, normalize asset and amount, and join it to the original invoice and event reference."
+      "state": "accepted",
+      "owner": "local-agent",
+      "commands": [
+        "node --test test/m02-payments.test.ts"
+      ],
+      "evidence": [
+        "T-003 PASS: receipt for E7/250 USD confirms one payment; same event_id deduped in inbox; same transfer under new event_id collapses via (rail,transfer_ref,event_index) unique \u2014 one canonical payment",
+        "T-004 PASS: correct amount on foreign invoice -> quarantined invoice_mismatch; amount_mismatch quarantined; rebind of bound transfer -> duplicate_transfer; quarantine listed for operator review"
+      ],
+      "nextAction": "M03: fulfillment.status handler, monotonic revisions, artifact store, merchant status adapter + worker poll"
     },
     {
       "id": "M03",
       "title": "Asynchronous fulfillment",
-      "state": "pending",
-      "owner": null,
+      "state": "active",
+      "owner": "local-agent",
       "commands": [],
       "evidence": [],
       "nextAction": "Implement a persistent asynchronous export job and merchant status adapter. Track monotonic revisions and readable evidence-backed artifact references."

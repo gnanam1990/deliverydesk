@@ -14,8 +14,8 @@ import { unprocessedCount } from '../../domain/inbox.ts';
 export function registerConnectorRoutes(app: App): void {
   app.route('POST', '/connectors/{merchant}/events', {
     auth: { kind: 'connector', merchantParam: 'merchant' },
-    handler: (ctx) =>
-      tx(ctx.db, () =>
+    handler: (ctx) => {
+      const res = tx(ctx.db, () =>
         withIdempotency(
           ctx.db,
           {
@@ -36,11 +36,17 @@ export function registerConnectorRoutes(app: App): void {
             if (!event.event_id || !event.kind) {
               throw badRequest('event_id and kind are required');
             }
-            const result = ingestEvent(ctx.db, ctx.connectorMerchant!, event);
+            const result = ingestEvent(
+              { db: ctx.db, config: ctx.config },
+              ctx.connectorMerchant!,
+              event,
+            );
             return { status: result.status === 'duplicate' ? 200 : 202, body: result };
           },
         ),
-      ),
+      );
+      return { status: res.status, json: res.body };
+    },
   });
 
   // Operator inspection of the merchant event inbox (raw receipt evidence).
