@@ -1,0 +1,26 @@
+{
+  "name": "deliverydesk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "start": "node src/bin/serve.ts",
+    "web": "node src/bin/serve.ts --web-only",
+    "worker": "node src/bin/serve.ts --worker-only",
+    "seed": "node src/bin/seed.ts",
+    "demo": "node src/bin/scenario.ts",
+    "check:browser": "node src/bin/browser-check.ts",
+    "simulator": "node src/simulator/merchant-sim.ts",
+    "migrate": "node src/bin/migrate.ts",
+    "test": "node --test 'test/*.test.ts'",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.0",
+    "playwright-core": "1.57.0",
+    "typescript": "5.9.3"
+  }
+}

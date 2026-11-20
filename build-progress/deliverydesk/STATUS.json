@@ -1,0 +1,160 @@
+{
+  "project": "DeliveryDesk",
+  "packVersion": "1.0",
+  "testedSha": "31b9198e92c25fe4351742391d86a9f26ae66f83",
+  "targetBranch": "devin/deliverydesk",
+  "environment": {
+    "os": "macOS arm64 (Darwin 27.2.0)",
+    "node": "v22.23.1",
+    "persistence": "SQLite via node:sqlite (see DECISIONS.md D-001)",
+    "externalProviders": "local-emulator only (see DECISIONS.md D-002)"
+  },
+  "modules": [
+    {
+      "id": "M01",
+      "title": "Merchant enrollment and order identity",
+      "state": "accepted",
+      "owner": "local-agent",
+      "commands": [
+        "node --test test/m01-identity.test.ts",
+        "npx tsc --noEmit"
+      ],
+      "evidence": [
+        "T-001 PASS: two merchants (merch-a, merch-b) both own external id E7 with distinct order ids; buyer lookup tenant-scoped; cross-buyer GET /orders/{id} -> 403; idempotent re-register returns same row; conflicting re-register -> 409",
+        "T-002 PASS: forged signature -> 401, unsigned -> 401, stale timestamp -> 401; no inbox/payment/case rows persisted; validly-signed unknown kind recorded unhandled"
+      ],
+      "nextAction": "M02: register payment.receipt event handler; normalize asset/amount; join receipt to invoice; quarantine mismatched invoice"
+    },
+    {
+      "id": "M02",
+      "title": "Payment matching",
+      "state": "accepted",
+      "owner": "local-agent",
+      "commands": [
+        "node --test test/m02-payments.test.ts"
+      ],
+      "evidence": [
+        "T-003 PASS: receipt for E7/250 USD confirms one payment; same event_id deduped in inbox; same transfer under new event_id collapses via (rail,transfer_ref,event_index) unique \u2014 one canonical payment",
+        "T-004 PASS: correct amount on foreign invoice -> quarantined invoice_mismatch; amount_mismatch quarantined; rebind of bound transfer -> duplicate_transfer; quarantine listed for operator review"
+      ],
+      "nextAction": "M03: fulfillment.status handler, monotonic revisions, artifact store, merchant status adapter + worker poll"
+    },
+    {
+      "id": "M03",
+      "title": "Asynchronous fulfillment",
+      "state": "accepted",
+      "owner": "local-agent",
+      "commands": [
+        "node --test test/m03-fulfillment.test.ts",
+        "node --test test/"
+      ],
+      "evidence": [
+        "T-005 PASS: rev4 complete + verified 3KB artifact -> ready; late rev3 running -> stale_revision, ignored, no row; artifact persisted in content-addressed store",
+        "T-006 PASS: rev5 complete w/o bytes -> state 'unknown' evidence 'artifact_missing'; case stays 'investigating'; evidence visible on order read",
+        "EXTRA PASS: worker poll of emulator status API recovers rev4 via artifact.fetch outbox -> ready (basis for T-013)"
+      ],
+      "nextAction": "M04: openCase dedupe, access grants, fenced retrievals, digest receipt/acknowledgment"
+    },
+    {
+      "id": "M04",
+      "title": "Case intake and redelivery",
+      "state": "accepted",
+      "owner": "local-agent",
+      "commands": [
+        "node --test test/m04-redelivery.test.ts",
+        "node --test test/*.test.ts"
+      ],
+      "evidence": [
+        "T-007 PASS: case dedupe on reopen; grant->stream->digest receipt -> delivered; 1 payment 0 refunds; timeline has opened/ready/grant/delivered, no grant tokens",
+        "T-008 PASS: copied grant by buyer B -> 403 no claim row; abort mid-stream -> 'interrupted' blocks refund guard and never delivers; resume on same fenced claim -> awaiting_receipt -> acknowledge -> delivered"
+      ],
+      "nextAction": "M05: refund proposals, approval role gate, outbox dispatch via provider adapter, settlement tracking, serialized disposition vs retrievals"
+    },
+    {
+      "id": "M05",
+      "title": "Refund decision and settlement",
+      "state": "accepted",
+      "owner": "local-agent",
+      "commands": [
+        "node --test test/m05-refunds.test.ts",
+        "node --test test/*.test.ts",
+        "npx --cache .npm-cache tsc --noEmit"
+      ],
+      "evidence": [
+        "T-009 PASS: failed export + confirmed 250 USD-cent payment -> proposal -> finance approval -> exactly one provider dispatch -> provider-settled -> case refunded; support-only approval denied",
+        "T-010 PASS: in-flight retrieval serializes dispatch; buyer digest receipt lands first -> refund declined, zero provider calls, case delivered",
+        "EXTRA PASS: interrupted retrieval defers dispatch; operator reconciliation abandons it -> dispatch proceeds and settlement reaches refunded"
+      ],
+      "nextAction": "M06: server-rendered support console and buyer timeline with ownership/stale filters, provider receipt links and distinct proposed/authorized/pending/settled refund badges"
+    },
+    {
+      "id": "M06",
+      "title": "Support console and buyer timeline",
+      "state": "accepted",
+      "owner": "local-agent",
+      "commands": [
+        "node --test test/m06-console.test.ts",
+        "node --test test/*.test.ts",
+        "npx --cache .npm-cache tsc --noEmit",
+        "npm run check:browser"
+      ],
+      "evidence": [
+        "T-011 PASS: operator HTML timeline shows Payment confirmed -> Export ready -> Artifact retrieved -> Delivery acknowledged; /console/payments/{id}/receipt evidence is linked for operators and denied to buyers",
+        "T-012 PASS: injected refund timeout -> settlement_investigation; console and buyer pages show Pending investigation and no Refund settled/refunded claim",
+        "EXTRA PASS: operator claim persists owner; mine=1 and stale=1 filters return the expected case in JSON and HTML queue",
+        "BROWSER FORM PASS: normal HTML controls open E7, issue grant, download original artifact, acknowledge delivery and render Access denied HTML for cross-buyer access",
+        "VISUAL PASS: warm KiteBridge/KiteWorkforce tokens, olive primary actions, accessible secondary/error colors, editorial headings, mono evidence values, local-emulator labels and 320px single-column controls preserved all routes and form/browser selectors",
+        "BROWSER ENVIRONMENT GATE: Chromium headless shell 1254 exists but sandbox denied MachPortRendezvousServer; portable Playwright Core check and replay instructions recorded in build-progress/deliverydesk/BROWSER.md"
+      ],
+      "nextAction": "M07: reconcile suppressed/duplicated/reordered/late events, preserve settlement and entitlement identities across restart, emit review item on late ready after refund, and expose field-trial metrics"
+    },
+    {
+      "id": "M07",
+      "title": "Connector reconciliation and field trial",
+      "state": "accepted",
+      "owner": "local-agent",
+      "commands": [
+        "node --test test/m07-reconciliation.test.ts",
+        "node --test test/*.test.ts",
+        "npx --cache .npm-cache tsc --noEmit",
+        "node docs/build-pack/tools/check-build-pack.mjs --root docs/build-pack"
+      ],
+      "evidence": [
+        "T-013 PASS: webhook suppressed; worker status lookup recovered rev4, fetched artifact and delivered digest D after app/db restart; payment, fulfillment, artifact and event identities preserved; duplicate transfer did not charge; late rev3 stayed stale",
+        "T-014 PASS: late ready after settled refund opened late_ready_after_refund review item, preserved refunded disposition and issued zero access grants",
+        "METRICS PASS: /console/metrics reports uniqueResolvedOrders, secondCharges, duplicateTransferAttempts, timeToRetrieval, falseClosures and lateReadyReviewItems"
+      ],
+      "nextAction": "Complete locally; only external live-provider sandbox proof remains outside this run"
+    }
+  ],
+  "finalVerification": {
+    "state": "local-emulator accepted",
+    "cleanCheckout": "data/final-checkout generated by git archive from 04478ec8195c3e4f9eaec92bf583793ded06441a",
+    "commands": [
+      "npm ci \u2192 exit 0",
+      "npm run typecheck \u2192 exit 0",
+      "npm test \u2192 18 pass / 0 fail",
+      "package script target check \u2192 all resolve",
+      "DD_DATA_DIR=$PWD/.runtime npm run seed \u2192 exit 0",
+      "DD_DATA_DIR=$PWD/.runtime DD_PORT=18081 npm start \u2192 normal entry point",
+      "curl http://127.0.0.1:18081/ \u2192 303 /login",
+      "DD_BASE=http://127.0.0.1:18081 npm run demo \u2192 exit 0",
+      "DD_DATA_DIR=$PWD/.runtime-migrate npm run migrate \u2192 schema version 2",
+      "npm ci \u2192 exit 0 after playwright-core dev dependency",
+      "npm run typecheck \u2192 exit 0",
+      "npm test \u2192 19 pass / 0 fail",
+      "npm run check:browser \u2192 environment-blocked before launch; exact replay command in BROWSER.md",
+      "host-browser locator review \u2192 timeline-scoped Provider receipt control fixed at 6faf1eed02c19ba6ddb5f227e25222dcba8d2da4",
+      "host-browser keyboard review \u2192 actionable-control focus assertions fixed at 079633ece9dad0f2ffdd40d9db325eb28cb3c67f",
+      "workflow visual pass \u2192 31b9198e92c25fe4351742391d86a9f26ae66f83; npm run typecheck, npm test (20 pass / 0 fail), git diff --check and impeccable detect pass"
+    ],
+    "evidence": "build-progress/deliverydesk/evidence/acceptance-local.json",
+    "browser": {
+      "command": "DD_BROWSER_PATH=\"$HOME/Library/Caches/ms-playwright/chromium_headless_shell-1254/chrome-headless-shell-mac-arm64/chrome-headless-shell\" npm run check:browser",
+      "documentation": "build-progress/deliverydesk/BROWSER.md",
+      "evidence": "build-progress/deliverydesk/evidence/browser-e7.json",
+      "state": "runnable; blocked in this command sandbox before Chromium launch",
+      "missingProof": "host browser run outside the command sandbox"
+    }
+  }
+}

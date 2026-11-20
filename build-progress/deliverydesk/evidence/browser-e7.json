@@ -1,0 +1,32 @@
+{
+  "environment": "local-emulator",
+  "browser": {},
+  "app": {
+    "entryPoint": "http://127.0.0.1:59396",
+    "disposableData": true,
+    "worker": "web-only"
+  },
+  "observed": {
+    "error": "browserType.launch: Target page, context or browser has been closed",
+    "launchBlocked": "browser executable was present, but the execution sandbox denied Chromium process setup"
+  },
+  "checks": {},
+  "redactions": [
+    "buyer/operator bearer tokens",
+    "grant bearer token",
+    "provider secrets",
+    "temporary data path"
+  ],
+  "testedSha": "079633ece9dad0f2ffdd40d9db325eb28cb3c67f",
+  "verification": {
+    "command": "npm run check:browser",
+    "explicitBrowserCommand": "DD_BROWSER_PATH=\"$HOME/Library/Caches/ms-playwright/chromium_headless_shell-1254/chrome-headless-shell-mac-arm64/chrome-headless-shell\" npm run check:browser",
+    "setup": [
+      "npm ci"
+    ],
+    "hostBrowserProof": "pending host replay outside this command sandbox",
+    "regressionCoverage": "node --test test/m06-console.test.ts \u2192 normal browser forms recover, download and acknowledge delivery PASS",
+    "locatorFix": "Provider receipt is scoped to section[aria-labelledby=\"timeline-title\"] and asserted as exactly one timeline link",
+    "keyboardFix": "required named controls are asserted nonempty and keyboard reachable with visible focus; body wrap stops ignored; focus-cycle closure and zero invisible actionable stops asserted separately"
+  }
+}

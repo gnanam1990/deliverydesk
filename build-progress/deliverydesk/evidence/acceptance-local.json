@@ -1,0 +1,63 @@
+{
+  "environment": "local-emulator",
+  "entryPoint": "http://127.0.0.1:18081",
+  "input": {
+    "merchantId": "pilot",
+    "externalOrderId": "E7",
+    "amountMinor": 250,
+    "asset": "USD",
+    "artifactBytes": 3072
+  },
+  "observed": {
+    "orderLookupStatus": 200,
+    "paymentState": "confirmed",
+    "fulfillmentRevision": 4,
+    "fulfillmentState": "ready",
+    "seededArtifactDigest": "f05364b6c76b2e208cd2b8042b29190c8c11f90f35cb75639f9bd5e84fd3da51",
+    "crossBuyerLookupStatus": 403,
+    "caseId": "case_68H3rpne4I6E77xI",
+    "caseOpenStatus": 201,
+    "copiedGrantStatus": 403,
+    "artifactBytes": 3072,
+    "artifactDigest": "f05364b6c76b2e208cd2b8042b29190c8c11f90f35cb75639f9bd5e84fd3da51",
+    "expectedDigest": "f05364b6c76b2e208cd2b8042b29190c8c11f90f35cb75639f9bd5e84fd3da51",
+    "receiptStatus": 200,
+    "finalCaseState": "delivered",
+    "operatorCaseState": "delivered",
+    "operatorRefundState": null,
+    "buyerTimelineContainsDelivery": true,
+    "metrics": {
+      "merchantId": "pilot",
+      "uniqueResolvedOrders": 1,
+      "secondCharges": 0,
+      "duplicateTransferAttempts": 0,
+      "timeToRetrieval": {
+        "count": 1,
+        "p50Ms": 17,
+        "maxMs": 17
+      },
+      "falseClosures": 0,
+      "lateReadyReviewItems": 0
+    }
+  },
+  "redactions": [
+    "buyer/operator bearer tokens",
+    "grant bearer token",
+    "provider secrets"
+  ],
+  "testedSha": "04478ec8195c3e4f9eaec92bf583793ded06441a",
+  "verification": {
+    "cleanCheckout": "data/final-checkout from git archive 04478ec8195c3e4f9eaec92bf583793ded06441a",
+    "commands": [
+      "npm ci \u2192 exit 0",
+      "npm run typecheck \u2192 exit 0",
+      "npm test \u2192 18 pass / 0 fail",
+      "package script target check \u2192 all resolve",
+      "DD_DATA_DIR=$PWD/.runtime npm run seed \u2192 exit 0",
+      "DD_DATA_DIR=$PWD/.runtime DD_PORT=18081 npm start \u2192 normal entry point",
+      "curl http://127.0.0.1:18081/ \u2192 303 /login",
+      "DD_BASE=http://127.0.0.1:18081 npm run demo \u2192 exit 0",
+      "DD_DATA_DIR=$PWD/.runtime-migrate npm run migrate \u2192 schema version 2"
+    ]
+  }
+}
