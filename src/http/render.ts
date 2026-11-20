@@ -61,56 +61,90 @@ function money(amountMinor: number | null | undefined, asset: string | null | un
 }
 
 const CSS = `
-:root { color-scheme: light; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif; background: #f6f4ef; color: #1d252d; }
+:root {
+  color-scheme: light;
+  --paper: #FEF8F0;
+  --ink: #1F1A14;
+  --card: #FFFDF9;
+  --border: #E3D7C2;
+  --action: #485C11;
+  --action-ink: #FFFFFF;
+  --action-hover: #37470D;
+  --secondary: #5F5547;
+  --error: #A23A1A;
+  --focus: #B65B00;
+  --paper-shadow: rgba(67, 48, 24, .08);
+  font-family: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+}
 * { box-sizing: border-box; }
 body { margin: 0; }
-a { color: #075fb6; }
-a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #f2b84b; outline-offset: 3px; }
+a { color: #354F08; text-decoration-thickness: .08em; text-underline-offset: .18em; }
+a:hover { color: var(--action-hover); }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 main { width: min(1120px, 100%); margin: 0 auto; padding: 24px clamp(14px, 3vw, 32px) 48px; }
-.topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px clamp(14px, 3vw, 32px); background: #152536; color: #fff; }
-.topbar a { color: #fff; }
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px clamp(14px, 3vw, 32px); background: var(--ink); color: var(--card); border-bottom: 1px solid #4A4033; }
+.topbar a { color: var(--card); }
 .topbar nav { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .topbar form { margin: 0; }
-.nav-button { min-height: 34px; border: 1px solid #7f95a8; border-radius: 6px; background: transparent; color: #fff; font: inherit; padding: 5px 10px; }
-.brand { font-weight: 750; letter-spacing: .02em; }
-h1 { font-size: clamp(1.8rem, 4vw, 3.2rem); line-height: 1; margin: 16px 0 10px; }
-h2 { font-size: 1.1rem; margin: 0 0 12px; }
+.brand-wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.brand { font-family: "Crimson Text", Georgia, "Times New Roman", serif; font-size: 1.35rem; font-weight: 700; letter-spacing: .01em; }
+.env-badge { display: inline-flex; align-items: center; min-height: 26px; padding: 2px 8px; border: 1px solid #786A52; border-radius: 999px; color: #F4E8D2; font-size: .78rem; font-weight: 700; letter-spacing: .02em; }
+.nav-button { min-height: 34px; border: 1px solid #8B7C63; border-radius: 6px; background: transparent; color: var(--card); font: inherit; padding: 5px 10px; }
+.nav-button:hover { background: #322A20; }
+h1, h2 { font-family: "Crimson Text", Georgia, "Times New Roman", serif; color: var(--ink); }
+h1 { font-size: clamp(1.9rem, 4vw, 3.15rem); line-height: .98; margin: 16px 0 10px; }
+h2 { font-size: 1.35rem; line-height: 1.15; margin: 0 0 12px; }
 p { line-height: 1.55; }
-.muted { color: #5c6873; }
+code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .92em; }
+.muted { color: var(--secondary); }
 .grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(280px, .7fr); gap: 20px; align-items: start; }
-.card { background: #fff; border: 1px solid #d9d5cc; border-radius: 8px; padding: 18px; box-shadow: 0 1px 2px rgba(20,30,40,.04); }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; box-shadow: 0 2px 8px var(--paper-shadow); }
 .card + .card { margin-top: 16px; }
-.queue { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
-.queue a { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 14px; border: 1px solid #d9d5cc; border-radius: 8px; background: #fff; text-decoration: none; color: inherit; }
-.queue a:hover { transform: translateY(-1px); border-color: #8aa4b8; }
-.badge { display: inline-flex; align-items: center; width: fit-content; min-height: 28px; padding: 3px 9px; border-radius: 999px; border: 1px solid #aab4bd; font-size: .83rem; font-weight: 700; }
+.queue { display: grid; gap: 10px; margin: 16px 0 0; padding: 0; list-style: none; }
+.queue a { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); text-decoration: none; color: inherit; }
+.queue a:hover { transform: translateY(-1px); border-color: #A99574; box-shadow: 0 2px 7px var(--paper-shadow); }
+.badge { display: inline-flex; align-items: center; width: fit-content; min-height: 28px; padding: 3px 9px; border-radius: 999px; border: 1px solid #9B8C75; font-size: .83rem; font-weight: 700; }
 .badge::before { content: ''; width: .55rem; height: .55rem; border-radius: 50%; margin-right: 7px; background: currentColor; }
-.badge.neutral { color: #44515c; background: #eef1f3; }
-.badge.proposed { color: #684700; background: #fff2ca; border-color: #c59b36; }
-.badge.authorized { color: #075083; background: #e5f2ff; border-color: #61a7d9; }
-.badge.pending { color: #6d4a00; background: #fff4d7; border-color: #caa14c; }
-.badge.investigation { color: #7c2d12; background: #ffeadf; border-color: #d97c51; }
-.badge.settled { color: #155e3d; background: #e3f5eb; border-color: #4e9d74; }
-.badge.danger { color: #8a1f1f; background: #fde7e7; border-color: #d46a6a; }
+.badge.neutral { color: #554B3C; background: #F3EDDF; border-color: #B8AA92; }
+.badge.proposed { color: #654000; background: #FFF1C9; border-color: #B98B24; }
+.badge.authorized { color: #344B87; background: #E9EEF8; border-color: #7183AE; }
+.badge.pending { color: #624400; background: #FFF3D3; border-color: #B9903A; }
+.badge.investigation { color: var(--error); background: #FCE9DE; border-color: #C96A45; }
+.badge.settled { color: var(--action); background: #ECF2DF; border-color: #7C8F49; }
+.badge.danger { color: var(--error); background: #FBE4DC; border-color: #B95031; }
 .timeline { margin: 0; padding: 0; list-style: none; }
-.timeline li { position: relative; padding: 0 0 18px 28px; border-left: 2px solid #cfd7dd; margin-left: 8px; }
-.timeline li::before { content: ''; position: absolute; left: -7px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: #075fb6; border: 2px solid #fff; }
-.timeline time { display: block; font-size: .82rem; color: #5c6873; margin-bottom: 3px; }
+.timeline li { position: relative; padding: 0 0 18px 28px; border-left: 2px solid #CDBB9E; margin-left: 8px; }
+.timeline li::before { content: ''; position: absolute; left: -7px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--action); border: 2px solid var(--card); }
+.timeline time { display: block; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .78rem; color: var(--secondary); margin-bottom: 3px; }
 .timeline .label { font-weight: 750; }
-.timeline .detail { color: #4d5a65; font-size: .92rem; margin-top: 3px; }
+.timeline .detail { color: #4F4639; font-size: .92rem; margin-top: 3px; }
 dl.facts { display: grid; grid-template-columns: minmax(110px, auto) 1fr; gap: 8px 14px; margin: 0; }
-dl.facts dt { color: #5c6873; }
+dl.facts dt { color: var(--secondary); }
 dl.facts dd { margin: 0; overflow-wrap: anywhere; }
 .filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 14px 0 18px; }
-.filters a, .button { border: 1px solid #8495a3; background: #fff; color: #1d252d; border-radius: 6px; min-height: 38px; padding: 8px 12px; text-decoration: none; font: inherit; }
-.filters a[aria-current='true'], .button:hover { background: #e9f1f7; border-color: #075fb6; }
+.filters a, .button { min-height: 40px; border-radius: 7px; padding: 9px 13px; text-decoration: none; font: inherit; }
+.filters a { border: 1px solid #A99574; background: var(--card); color: var(--ink); }
+.filters a[aria-current='true'] { background: #EAE4D2; border-color: var(--ink); font-weight: 700; }
+.button { display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--action); background: var(--action); color: var(--action-ink); font-weight: 700; cursor: pointer; }
+a.button { text-decoration: none; }
+.button:hover { background: var(--action-hover); border-color: var(--action-hover); color: var(--action-ink); }
+.button:active { transform: translateY(1px); }
+.button.secondary { background: var(--card); color: var(--ink); border-color: #A99574; }
+.button.secondary:hover { background: #F2ECDD; border-color: var(--ink); color: var(--ink); }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
 .actions form { margin: 0; }
-.status-line { margin: 12px 0; }
+.status-line { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+input, select { width: 100%; min-height: 42px; border: 1px solid #A99574; border-radius: 7px; background: var(--card); color: var(--ink); font: inherit; padding: 8px 10px; }
+select { width: auto; min-width: 220px; }
 @media (max-width: 720px) {
   .topbar { align-items: flex-start; flex-direction: column; }
   .grid { grid-template-columns: 1fr; }
   main { padding-top: 18px; }
+  .queue a { grid-template-columns: 1fr; }
+  .filters a, .button { width: 100%; }
+  .actions, .actions form { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
@@ -123,6 +157,7 @@ export function page(title: string, body: string, opts: { area?: 'buyer' | 'cons
     : opts.area === 'buyer'
       ? '<a href="/buyer">Your cases</a><form method="post" action="/logout"><button class="nav-button" type="submit">Sign out</button></form>'
       : '';
+  const navMarkup = nav ? `<nav aria-label="Primary">${nav}</nav>` : '';
   return `<!doctype html>
 <html lang="en" data-type="software">
 <head>
@@ -134,7 +169,7 @@ export function page(title: string, body: string, opts: { area?: 'buyer' | 'cons
 <style>${CSS}</style>
 </head>
 <body>
-<header class="topbar"><div class="brand">DeliveryDesk</div><nav aria-label="Primary">${nav}</nav></header>
+<header class="topbar"><div class="brand-wrap"><div class="brand">DeliveryDesk</div><span class="env-badge">local-emulator</span></div>${navMarkup}</header>
 <main>${body}</main>
 </body>
 </html>`;
@@ -152,7 +187,7 @@ export function renderCasePage(view: CaseView, timeline: TimelineItem[], opts: {
   const rb = refundBadge(view.refund?.state);
   const title = `Order ${view.externalOrderId}`;
   const refresh = opts.audience === 'buyer' && !['delivered', 'refunded', 'closed'].includes(view.state)
-    ? `<form method="post" action="/cases/${escapeHtml(view.id)}/refresh"><button class="button" type="submit">Refresh case</button></form>`
+    ? `<form method="post" action="/cases/${escapeHtml(view.id)}/refresh"><button class="button secondary" type="submit">Refresh case</button></form>`
     : '';
   const recovery = opts.audience === 'buyer' && view.fulfillment?.state === 'ready' && !['delivered', 'refunded', 'closed'].includes(view.state)
     ? `<form method="post" action="/cases/${escapeHtml(view.id)}/redelivery"><button class="button" type="submit">Recover original export</button></form>`
@@ -167,7 +202,7 @@ export function renderCasePage(view: CaseView, timeline: TimelineItem[], opts: {
     ? `<dt>Receipt</dt><dd><a href="${escapeHtml(opts.providerReceiptHref)}">Provider receipt ${escapeHtml(view.payment?.transferRef ?? '')}</a></dd>`
     : '';
   return page(title, `
-    <p class="muted">${opts.audience === 'operator' ? 'Support case record' : 'Your delivery case'} · persisted version ${escapeHtml(view.version)}</p>
+    <p class="muted">${opts.audience === 'operator' ? 'Support case record' : 'Your delivery case'} · local-emulator evidence · persisted version ${escapeHtml(view.version)}</p>
     <h1>${escapeHtml(title)}</h1>
     <div class="status-line" role="status" aria-live="polite">${statusBadge(view.state)} ${view.refund ? `<span class="${rb.cls}">${escapeHtml(rb.label)}</span>` : ''}</div>
     <div class="grid">
@@ -179,7 +214,7 @@ export function renderCasePage(view: CaseView, timeline: TimelineItem[], opts: {
         <section class="card" aria-labelledby="case-facts">
           <h2 id="case-facts">Case facts</h2>
           <dl class="facts">
-            <dt>Case</dt><dd>${escapeHtml(view.id)}</dd>
+            <dt>Case</dt><dd><code>${escapeHtml(view.id)}</code></dd>
             <dt>Reason</dt><dd>${escapeHtml(view.reason)}</dd>
             ${owner}
             <dt>Payment</dt><dd>${escapeHtml(view.payment?.state ?? 'not confirmed')} · ${money(view.refund?.amountMinor ?? null, view.refund?.asset ?? null)}</dd>
@@ -219,7 +254,7 @@ export function renderConsoleQueue(items: { id: string; externalOrderId: string;
   }).join('');
   return page('Support console', `
     <h1>Support console</h1>
-    <p class="muted">Merchant case queue. Filter ownership and stale cases without leaving the record.</p>
+    <p class="muted">Local-emulator merchant case queue. Filter ownership and stale cases without leaving the record.</p>
     <nav class="filters" aria-label="Case filters">
       <a href="/console" ${!filters.stale && !filters.mine ? 'aria-current="true"' : ''}>All cases</a>
       <a href="/console?mine=1" ${filters.mine ? 'aria-current="true"' : ''}>My cases</a>
@@ -231,7 +266,7 @@ export function renderConsoleQueue(items: { id: string; externalOrderId: string;
 export function renderLogin(error?: string): string {
   return page('Sign in', `
     <h1>Sign in</h1>
-    <p class="muted">Use a buyer or operator token issued by the merchant pilot.</p>
+    <p class="muted">Authorize a buyer or operator token issued by the local-emulator merchant pilot.</p>
     ${error ? `<p role="alert" class="badge danger">${escapeHtml(error)}</p>` : ''}
     <section class="card" style="max-width: 560px">
       <form method="post" action="/login">
@@ -297,7 +332,7 @@ export function renderBuyerIndex(items: { id: string; externalOrderId: string; s
   const rows = items.map((item) => `<li><a href="/cases/${escapeHtml(item.id)}"><span><strong>${escapeHtml(item.externalOrderId)}</strong><br><span class="muted">${escapeHtml(item.reason)}</span></span><span>${statusBadge(item.state)}</span></a></li>`).join('');
   return page('Your cases', `
     <h1>Your cases</h1>
-    <p class="muted">Delivery recovery cases for your orders.</p>
+    <p class="muted">Local-emulator delivery recovery cases for your orders.</p>
     <section class="card" aria-labelledby="open-case">
       <h2 id="open-case">Open a recovery case</h2>
       <form method="post" action="/cases/open-by-external">

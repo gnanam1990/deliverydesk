@@ -213,6 +213,22 @@ test('normal browser forms recover, download and acknowledge delivery', async ()
   assert.ok((await denied.text()).includes('Access denied'));
 });
 
+test('workflow visual vocabulary stays warm, accessible and emulator-labeled', async () => {
+  const res = await fetch(`${env.base}/login`, { headers: htmlHeaders });
+  assert.equal(res.status, 200);
+  const html = await res.text();
+  for (const token of ['#FEF8F0', '#1F1A14', '#FFFDF9', '#E3D7C2', '#485C11', '#A23A1A']) {
+    assert.ok(html.includes(token), `${token} missing`);
+  }
+  assert.ok(html.includes('focus-visible'));
+  assert.ok(html.includes('local-emulator'));
+  assert.ok(html.includes('name="audience"'));
+  assert.ok(html.includes('type="password"'));
+
+  const buyerIndex = await api(env.base, 'GET', '/buyer', { token: buyerToken, headers: htmlHeaders });
+  assert.ok(buyerIndex.raw.includes('aria-label="Primary"'));
+});
+
 test('T-012: refund provider timeout renders pending investigation, not refunded', async () => {
   const { caseId } = await orderAndCase('failed');
   sim.faults.refundTimeout = true;
