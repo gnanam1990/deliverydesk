@@ -151,6 +151,68 @@ test('operator ownership and stale filters stay durable', async () => {
   assert.ok(page.raw.includes('Stale'));
 });
 
+test('normal browser forms recover, download and acknowledge delivery', async () => {
+  const { order, caseId } = await orderAndCase('ready');
+  const htmlFormHeaders = {
+    authorization: `Bearer ${buyerToken}`,
+    accept: 'text/html',
+    'content-type': 'application/x-www-form-urlencoded',
+  };
+  const open = await fetch(`${env.base}/cases/open-by-external`, {
+    method: 'POST',
+    headers: htmlFormHeaders,
+    body: `external_id=${encodeURIComponent(order.external_order_id)}`,
+    redirect: 'manual',
+  });
+  assert.equal(open.status, 303);
+  assert.equal(open.headers.get('location'), `/cases/${caseId}`);
+
+  const recover = await fetch(`${env.base}/cases/${caseId}/redelivery`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${buyerToken}`, accept: 'text/html' },
+    redirect: 'manual',
+  });
+  assert.equal(recover.status, 303);
+  assert.equal(recover.headers.get('location'), `/cases/${caseId}/retrieve`);
+
+  const retrieve = await fetch(`${env.base}${recover.headers.get('location')}`, {
+    headers: { authorization: `Bearer ${buyerToken}`, accept: 'text/html' },
+  });
+  assert.equal(retrieve.status, 200);
+  const retrieveHtml = await retrieve.text();
+  assert.ok(retrieveHtml.includes('Download original export'));
+  assert.ok(retrieveHtml.includes(DIG));
+  const grantHref = retrieveHtml.match(/href="([^"]+\/artifact)"/)?.[1];
+  assert.ok(grantHref, 'download grant link missing');
+
+  const download = await fetch(`${env.base}${grantHref}`, {
+    headers: { authorization: `Bearer ${buyerToken}`, connection: 'close' },
+  });
+  assert.equal(download.status, 200);
+  assert.equal(sha256(Buffer.from(await download.arrayBuffer())), DIG);
+  const retrievalId = download.headers.get('x-retrieval-id')!;
+  await waitFor(() => {
+    const r = one<Retrieval>(env.db, 'SELECT * FROM retrievals WHERE id = ?', retrievalId);
+    return r?.state === 'awaiting_receipt' ? r : undefined;
+  });
+
+  const acknowledge = await fetch(`${env.base}/cases/${caseId}/acknowledge`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${buyerToken}`, accept: 'text/html' },
+    redirect: 'manual',
+  });
+  assert.equal(acknowledge.status, 303);
+  const delivered = await api(env.base, 'GET', `/cases/${caseId}`, { token: buyerToken, headers: htmlHeaders });
+  assert.ok(delivered.raw.includes('Delivery acknowledged'));
+
+  const { token: buyerBToken } = createBuyer(env.db, { merchantId: m.id, externalRef: 'buyer-b' });
+  const denied = await fetch(`${env.base}/cases/${caseId}`, {
+    headers: { authorization: `Bearer ${buyerBToken}`, accept: 'text/html' },
+  });
+  assert.equal(denied.status, 403);
+  assert.ok((await denied.text()).includes('Access denied'));
+});
+
 test('T-012: refund provider timeout renders pending investigation, not refunded', async () => {
   const { caseId } = await orderAndCase('failed');
   sim.faults.refundTimeout = true;

@@ -19,6 +19,7 @@ import {
   abandonRetrieval,
   claimCaseOwnership,
   caseView,
+  usableGrantForCase,
   listCasesForBuyer,
   listCasesForMerchant,
   getRetrieval,
@@ -26,7 +27,7 @@ import {
 import { getOrder, lookupOrderByExternal } from '../../domain/orders.ts';
 import { readArtifact } from '../../domain/artifacts.ts';
 import { caseEvidenceTimeline, consoleCaseQueue } from '../../domain/console.ts';
-import { wantsHtml, renderCasePage, renderConsoleQueue, renderBuyerIndex } from '../render.ts';
+import { wantsHtml, renderCasePage, renderConsoleQueue, renderBuyerIndex, renderRetrievalPage } from '../render.ts';
 import type { Case, Order, Payment } from '../../domain/types.ts';
 import type { Ctx } from '../server.ts';
 
@@ -38,6 +39,15 @@ function caseOf(ctx: Ctx, param = 'id'): Case {
   const c = getCase(ctx.db, ctx.params[param]!);
   assertCaseReadable(ctx.actor!, c);
   return c;
+}
+
+function requestValue(ctx: Ctx, name: string): string | undefined {
+  if (ctx.body && typeof ctx.body === 'object') {
+    const value = (ctx.body as Record<string, unknown>)[name];
+    if (typeof value === 'string') return value;
+  }
+  const value = new URLSearchParams(ctx.rawBody).get(name);
+  return value === null ? undefined : value;
 }
 
 export function registerCaseRoutes(app: App): void {
@@ -73,16 +83,12 @@ export function registerCaseRoutes(app: App): void {
   app.route('POST', '/cases/open-by-external', {
     auth: { kind: 'buyer' },
     handler: (ctx) => {
-      const b = (ctx.body ?? {}) as Record<string, unknown>;
-      if (typeof b['merchant_id'] !== 'string' || typeof b['external_id'] !== 'string') {
+      const merchantId = requestValue(ctx, 'merchant_id') ?? ctx.actor!.merchantId;
+      const externalId = requestValue(ctx, 'external_id');
+      if (!merchantId || !externalId) {
         throw badRequest('merchant_id and external_id required');
       }
-      const order = lookupOrderByExternal(
-        ctx.db,
-        ctx.actor!,
-        b['merchant_id'],
-        b['external_id'],
-      );
+      const order = lookupOrderByExternal(ctx.db, ctx.actor!, merchantId, externalId);
       const res = tx(ctx.db, () =>
         withIdempotency(
           ctx.db,
@@ -90,19 +96,26 @@ export function registerCaseRoutes(app: App): void {
             key: ctx.idempotencyKey,
             actorKey: actorKey(ctx.actor!),
             endpoint: 'POST /cases/open-by-external',
-            payload: ctx.body,
+            payload: { merchant_id: merchantId, external_id: externalId, reason: requestValue(ctx, 'reason') },
           },
           () => {
             const { kase, created } = openCase(
               ctx.db,
               ctx.actor!,
               order,
-              typeof b['reason'] === 'string' ? b['reason'] : 'export_timeout',
+              requestValue(ctx, 'reason') ?? 'export_timeout',
             );
             return { status: created ? 201 : 200, body: caseView(ctx.db, kase) };
           },
         ),
       );
+      if (wantsHtml(ctx.headers, ctx.query)) {
+        return {
+          status: 303,
+          headers: { location: `/cases/${(res.body as { id: string }).id}` },
+          html: '',
+        };
+      }
       return { status: res.status, json: res.body };
     },
   });
@@ -263,6 +276,18 @@ export function registerCaseRoutes(app: App): void {
     },
   });
 
+  app.route('GET', '/cases/{id}/retrieve', {
+    auth: { kind: 'buyer' },
+    handler: (ctx) => {
+      const c = caseOf(ctx);
+      const grant = usableGrantForCase(ctx.db, ctx.actor!, c.id);
+      return {
+        status: 200,
+        html: renderRetrievalPage(caseView(ctx.db, c), grant),
+      };
+    },
+  });
+
   app.route('POST', '/cases/{id}/redelivery', {
     auth: { kind: 'buyer' },
     handler: (ctx) => {
@@ -273,7 +298,7 @@ export function registerCaseRoutes(app: App): void {
             key: ctx.idempotencyKey,
             actorKey: actorKey(ctx.actor!),
             endpoint: 'POST /cases/{id}/redelivery',
-            payload: { case: ctx.params['id'], body: ctx.body },
+            payload: { case: ctx.params['id'], body: ctx.body ?? ctx.rawBody },
           },
           () => {
             const grant = issueGrant(ctx.db, ctx.config, ctx.actor!, ctx.params['id']!);
@@ -290,6 +315,13 @@ export function registerCaseRoutes(app: App): void {
           },
         ),
       );
+      if (wantsHtml(ctx.headers, ctx.query)) {
+        return {
+          status: 303,
+          headers: { location: `/cases/${ctx.params['id']}/retrieve` },
+          html: '',
+        };
+      }
       return { status: res.status, json: res.body };
     },
   });
@@ -323,6 +355,7 @@ export function registerCaseRoutes(app: App): void {
         contentType: 'application/octet-stream',
         headers: {
           'content-length': String(bytes.byteLength),
+          'content-disposition': `attachment; filename="deliverydesk-export-${grant.artifact_digest.slice(0, 12)}.bin"`,
           'x-artifact-digest': grant.artifact_digest,
           'x-retrieval-id': retrieval.id,
         },
@@ -382,6 +415,13 @@ export function registerCaseRoutes(app: App): void {
           }),
         ),
       );
+      if (wantsHtml(ctx.headers, ctx.query)) {
+        return {
+          status: 303,
+          headers: { location: `/cases/${ctx.params['id']}` },
+          html: '',
+        };
+      }
       return { status: res.status, json: res.body };
     },
   });

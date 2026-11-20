@@ -6,6 +6,7 @@ import type { Actor, Merchant } from '../domain/types.ts';
 import { getMerchant } from '../domain/merchants.ts';
 import { authenticateBuyer, authenticateOperator, parseSignatureHeader, verifyConnectorSignature } from '../domain/auth.ts';
 import { Router } from './router.ts';
+import { renderErrorPage } from './render.ts';
 import { notFound as nf, unauthorized } from '../domain/errors.ts';
 
 export interface HandlerResult {
@@ -102,7 +103,7 @@ export class App {
       try {
         await this.handle(req, res);
       } catch (e) {
-        this.writeError(res, e);
+        this.writeError(res, e, req);
       }
     });
   }
@@ -230,7 +231,7 @@ export class App {
     res.end(JSON.stringify({ ok: true, data: r.json ?? null }));
   }
 
-  private writeError(res: http.ServerResponse, e: unknown): void {
+  private writeError(res: http.ServerResponse, e: unknown, req: http.IncomingMessage): void {
     const err =
       e instanceof HttpError
         ? e
@@ -238,6 +239,14 @@ export class App {
     if (!(e instanceof HttpError)) {
       // Never leak internals beyond the message; log server-side without secrets.
       console.error(`[deliverydesk] unhandled error: ${(e as Error)?.stack ?? e}`);
+    }
+    if (String(req.headers.accept ?? '').includes('text/html')) {
+      res.writeHead(err.status, {
+        'content-type': 'text/html; charset=utf-8',
+        'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+      });
+      res.end(renderErrorPage(err.status, err.message));
+      return;
     }
     res.writeHead(err.status, { 'content-type': 'application/json; charset=utf-8' });
     res.end(

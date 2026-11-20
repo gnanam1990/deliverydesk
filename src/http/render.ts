@@ -1,6 +1,6 @@
 import type { CaseView } from '../domain/cases.ts';
 import type { TimelineItem } from '../domain/console.ts';
-import type { RefundState } from '../domain/types.ts';
+import type { AccessGrant, RefundState } from '../domain/types.ts';
 
 /**
  * Small server-rendered UI. No client framework is required for the pilot:
@@ -65,10 +65,13 @@ const CSS = `
 * { box-sizing: border-box; }
 body { margin: 0; }
 a { color: #075fb6; }
-a:focus-visible, button:focus-visible { outline: 3px solid #f2b84b; outline-offset: 3px; }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #f2b84b; outline-offset: 3px; }
 main { width: min(1120px, 100%); margin: 0 auto; padding: 24px clamp(14px, 3vw, 32px) 48px; }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px clamp(14px, 3vw, 32px); background: #152536; color: #fff; }
 .topbar a { color: #fff; }
+.topbar nav { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.topbar form { margin: 0; }
+.nav-button { min-height: 34px; border: 1px solid #7f95a8; border-radius: 6px; background: transparent; color: #fff; font: inherit; padding: 5px 10px; }
 .brand { font-weight: 750; letter-spacing: .02em; }
 h1 { font-size: clamp(1.8rem, 4vw, 3.2rem); line-height: 1; margin: 16px 0 10px; }
 h2 { font-size: 1.1rem; margin: 0 0 12px; }
@@ -116,9 +119,9 @@ dl.facts dd { margin: 0; overflow-wrap: anywhere; }
 
 export function page(title: string, body: string, opts: { area?: 'buyer' | 'console' } = {}): string {
   const nav = opts.area === 'console'
-    ? '<a href="/console">Case queue</a>'
+    ? '<a href="/console">Case queue</a><form method="post" action="/logout"><button class="nav-button" type="submit">Sign out</button></form>'
     : opts.area === 'buyer'
-      ? '<a href="/buyer">Your cases</a>'
+      ? '<a href="/buyer">Your cases</a><form method="post" action="/logout"><button class="nav-button" type="submit">Sign out</button></form>'
       : '';
   return `<!doctype html>
 <html lang="en" data-type="software">
@@ -148,8 +151,14 @@ function timelineHtml(items: TimelineItem[]): string {
 export function renderCasePage(view: CaseView, timeline: TimelineItem[], opts: { audience: 'buyer' | 'operator'; providerReceiptHref?: string }): string {
   const rb = refundBadge(view.refund?.state);
   const title = `Order ${view.externalOrderId}`;
-  const refresh = opts.audience === 'buyer'
+  const refresh = opts.audience === 'buyer' && !['delivered', 'refunded', 'closed'].includes(view.state)
     ? `<form method="post" action="/cases/${escapeHtml(view.id)}/refresh"><button class="button" type="submit">Refresh case</button></form>`
+    : '';
+  const recovery = opts.audience === 'buyer' && view.fulfillment?.state === 'ready' && !['delivered', 'refunded', 'closed'].includes(view.state)
+    ? `<form method="post" action="/cases/${escapeHtml(view.id)}/redelivery"><button class="button" type="submit">Recover original export</button></form>`
+    : '';
+  const continueRetrieval = opts.audience === 'buyer' && view.retrieval && ['claimed', 'streaming', 'interrupted', 'awaiting_receipt'].includes(view.retrieval.state)
+    ? `<a class="button" href="/cases/${escapeHtml(view.id)}/retrieve">Continue retrieval</a>`
     : '';
   const owner = opts.audience === 'operator'
     ? `<dt>Owner</dt><dd>${escapeHtml(view.ownerOperatorId ?? 'Unassigned')}</dd>`
@@ -183,7 +192,7 @@ export function renderCasePage(view: CaseView, timeline: TimelineItem[], opts: {
         <section class="card" aria-labelledby="next-actions">
           <h2 id="next-actions">Next action</h2>
           <p>${escapeHtml(nextActionCopy(view))}</p>
-          <div class="actions">${refresh}</div>
+          <div class="actions">${recovery}${continueRetrieval}${refresh}</div>
         </section>
       </aside>
     </div>`, { area: opts.audience === 'operator' ? 'console' : 'buyer' });
@@ -196,7 +205,7 @@ function nextActionCopy(view: CaseView): string {
   if (view.retrieval && ['claimed', 'streaming', 'interrupted', 'awaiting_receipt'].includes(view.retrieval.state)) {
     return 'A retrieval is in progress or ambiguous; reconcile it before a refund dispatch.';
   }
-  if (view.state === 'available') return 'The original export is ready for the owning buyer to retrieve.';
+  if (view.state === 'available') return 'Recover the original export, then confirm receipt to close delivery.';
   return 'Wait for merchant fulfillment evidence or reconcile the connector status.';
 }
 
@@ -238,10 +247,64 @@ export function renderLogin(error?: string): string {
     </section>`);
 }
 
+export function renderRetrievalPage(view: CaseView, grant: AccessGrant | undefined): string {
+  const digest = view.fulfillment?.artifactDigest ?? view.retrieval?.digest ?? '';
+  const content = view.state === 'delivered'
+    ? `<section class="card" aria-labelledby="download-export"><h2 id="download-export">Export delivered</h2><p>Authenticated delivery evidence is recorded on this case.</p></section>`
+    : grant
+      ? `<section class="card" aria-labelledby="download-export">
+          <h2 id="download-export">Download the original export</h2>
+          <p>The grant is bound to this buyer and expires at <time datetime="${escapeHtml(grant.expires_at)}">${escapeHtml(grant.expires_at)}</time>.</p>
+          <dl class="facts">
+            <dt>Order</dt><dd>${escapeHtml(view.externalOrderId)}</dd>
+            <dt>Expected digest</dt><dd><code>${escapeHtml(digest)}</code></dd>
+          </dl>
+          <div class="actions">
+            <a class="button" href="/grants/${escapeHtml(grant.id)}/artifact" download>Download original export</a>
+            <form method="post" action="/cases/${escapeHtml(view.id)}/acknowledge"><button class="button" type="submit">Confirm export received</button></form>
+          </div>
+        </section>`
+      : `<section class="card" aria-labelledby="download-export">
+          <h2 id="download-export">No active download grant</h2>
+          <p>Issue a short-lived grant to retrieve the original export for this order.</p>
+          <form method="post" action="/cases/${escapeHtml(view.id)}/redelivery"><button class="button" type="submit">Issue download grant</button></form>
+        </section>`;
+  return page(`Retrieve ${view.externalOrderId}`, `
+    <p class="muted">${escapeHtml(view.state === 'delivered' ? 'Delivery is closed' : 'Authorized redelivery')} · persisted version ${escapeHtml(view.version)}</p>
+    <h1>Retrieve order ${escapeHtml(view.externalOrderId)}</h1>
+    <div class="status-line" role="status" aria-live="polite">${statusBadge(view.state)}</div>
+    ${content}
+    <p><a href="/cases/${escapeHtml(view.id)}">Back to the delivery case</a></p>`, { area: 'buyer' });
+}
+
+export function renderErrorPage(status: number, message: string): string {
+  const title = status === 401
+    ? 'Sign in required'
+    : status === 403
+      ? 'Access denied'
+      : status === 404
+        ? 'Page not found'
+        : 'Request could not be completed';
+  return page(title, `
+    <h1>${escapeHtml(title)}</h1>
+    <section class="card" role="alert">
+      <p>${escapeHtml(message)}</p>
+      <p><a class="button" href="/login">Go to sign in</a></p>
+    </section>`);
+}
+
 export function renderBuyerIndex(items: { id: string; externalOrderId: string; state: string; reason: string }[]): string {
   const rows = items.map((item) => `<li><a href="/cases/${escapeHtml(item.id)}"><span><strong>${escapeHtml(item.externalOrderId)}</strong><br><span class="muted">${escapeHtml(item.reason)}</span></span><span>${statusBadge(item.state)}</span></a></li>`).join('');
   return page('Your cases', `
     <h1>Your cases</h1>
     <p class="muted">Delivery recovery cases for your orders.</p>
+    <section class="card" aria-labelledby="open-case">
+      <h2 id="open-case">Open a recovery case</h2>
+      <form method="post" action="/cases/open-by-external">
+        <p><label for="external-order-id">Order ID</label><br>
+        <input id="external-order-id" name="external_id" autocomplete="off" required style="width:100%;min-height:40px"></p>
+        <button class="button" type="submit">Open recovery case</button>
+      </form>
+    </section>
     ${items.length ? `<ul class="queue">${rows}</ul>` : '<section class="card"><p>No recovery cases are open.</p></section>'}`, { area: 'buyer' });
 }

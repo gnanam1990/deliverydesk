@@ -1,0 +1,20 @@
+{
+  "environment": "local-emulator",
+  "browser": {},
+  "app": {
+    "entryPoint": "http://127.0.0.1:59396",
+    "disposableData": true,
+    "worker": "web-only"
+  },
+  "observed": {
+    "error": "browserType.launch: Target page, context or browser has been closed",
+    "launchBlocked": "browser executable was present, but the execution sandbox denied Chromium process setup"
+  },
+  "checks": {},
+  "redactions": [
+    "buyer/operator bearer tokens",
+    "grant bearer token",
+    "provider secrets",
+    "temporary data path"
+  ]
+}

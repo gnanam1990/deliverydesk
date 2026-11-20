@@ -203,6 +203,22 @@ export function getGrant(db: Db, grantId: string): AccessGrant {
   return g;
 }
 
+/** Latest usable grant for the owning buyer's normal retrieval page. */
+export function usableGrantForCase(db: Db, actor: Actor, caseId: string): AccessGrant | undefined {
+  const c = getCase(db, caseId);
+  assertCaseOwner(actor, c);
+  const grant = one<AccessGrant>(
+    db,
+    `SELECT * FROM access_grants
+     WHERE case_id = ? AND subject_id = ?
+     ORDER BY created_at DESC, id DESC LIMIT 1`,
+    caseId,
+    actor.id,
+  );
+  if (!grant || grant.revoked_at || grant.expires_at <= now()) return undefined;
+  return grant;
+}
+
 /**
  * Validate a grant for an artifact request. The grant subject must be the
  * authenticated buyer — a copied grant presented by another buyer is denied.
