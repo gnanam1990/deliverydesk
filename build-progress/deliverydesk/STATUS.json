@@ -1,7 +1,7 @@
 {
   "project": "DeliveryDesk",
   "packVersion": "1.0",
-  "testedSha": null,
+  "testedSha": "3ec3d75fe1116a6465a740e4a77f864f0ff4dd22",
   "targetBranch": "devin/deliverydesk",
   "environment": {
     "os": "macOS arm64 (Darwin 27.2.0)",
@@ -42,17 +42,24 @@
     {
       "id": "M03",
       "title": "Asynchronous fulfillment",
-      "state": "active",
+      "state": "accepted",
       "owner": "local-agent",
-      "commands": [],
-      "evidence": [],
-      "nextAction": "Implement a persistent asynchronous export job and merchant status adapter. Track monotonic revisions and readable evidence-backed artifact references."
+      "commands": [
+        "node --test test/m03-fulfillment.test.ts",
+        "node --test test/"
+      ],
+      "evidence": [
+        "T-005 PASS: rev4 complete + verified 3KB artifact -> ready; late rev3 running -> stale_revision, ignored, no row; artifact persisted in content-addressed store",
+        "T-006 PASS: rev5 complete w/o bytes -> state 'unknown' evidence 'artifact_missing'; case stays 'investigating'; evidence visible on order read",
+        "EXTRA PASS: worker poll of emulator status API recovers rev4 via artifact.fetch outbox -> ready (basis for T-013)"
+      ],
+      "nextAction": "M04: openCase dedupe, access grants, fenced retrievals, digest receipt/acknowledgment"
     },
     {
       "id": "M04",
       "title": "Case intake and redelivery",
-      "state": "pending",
-      "owner": null,
+      "state": "active",
+      "owner": "local-agent",
       "commands": [],
       "evidence": [],
       "nextAction": "Deduplicate buyer cases, authorize same-buyer redelivery and implement short-lived grants to the original immutable artifact; record completion receipts or acknowledgment. Persist a fenced retrieval claim before streaming and record the authenticated digest receipt or buyer acknowledgment."

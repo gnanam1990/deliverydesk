@@ -3,10 +3,12 @@ import type { Config } from '../config.ts';
 import { App } from './server.ts';
 import { registerCoreRoutes } from './routes/core.ts';
 import { registerConnectorRoutes } from './routes/connectors.ts';
+import { registerDomainEventHandlers } from '../domain/events.ts';
 import type http from 'node:http';
 
 /** Compose the application: routes + domain event handlers. */
 export function buildApp(db: Db, config: Config): App {
+  registerDomainEventHandlers();
   const app = new App(db, config);
   registerCoreRoutes(app);
   registerConnectorRoutes(app);

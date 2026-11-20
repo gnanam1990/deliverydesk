@@ -18,6 +18,14 @@ export function enqueue(
 ): string {
   const json = JSON.stringify(payload);
   const actionId = opts.actionId ?? newId('act');
+  // Deterministic action ids dedupe retries: an existing row means the
+  // intent is already persisted — return it without a second insert.
+  const existing = one<{ action_id: string }>(
+    db,
+    'SELECT action_id FROM outbox WHERE action_id = ?',
+    actionId,
+  );
+  if (existing) return existing.action_id;
   db.prepare(
     `INSERT INTO outbox (action_id, kind, payload, payload_hash, state, next_attempt_at, created_at, updated_at)
      VALUES (?, ?, ?, ?, 'pending', ?, ?, ?)`,
