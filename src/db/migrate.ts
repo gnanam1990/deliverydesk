@@ -232,6 +232,14 @@ CREATE INDEX inbox_pending ON inbox_events (merchant_id) WHERE processed_at IS N
 CREATE INDEX outbox_pending ON outbox (state, next_attempt_at);
 `,
   },
+  {
+    version: 2,
+    name: '002_inbox_order_scope',
+    sql: `
+ALTER TABLE inbox_events ADD COLUMN order_external_id TEXT;
+CREATE INDEX inbox_order_scope ON inbox_events (merchant_id, order_external_id);
+`,
+  },
 ];
 
 export function currentVersion(db: DatabaseSync): number {

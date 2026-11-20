@@ -21,7 +21,7 @@ export async function workerTick(db: Db, config: Config): Promise<Record<string,
   const outbox = await drainOutbox(db, config);
   const polled = await pollMerchantStatuses(db, config);
   const refunds = await reconcileRefunds(db, config);
-  const inbox = reconcileInbox(db);
+  const inbox = reconcileInbox({ db, config });
   return { outbox, polled, refunds, inbox };
 }
 

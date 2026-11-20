@@ -67,6 +67,7 @@ export function ingestEvent(ctx: DomainCtx, merchant: Merchant, event: Connector
       merchant_id: merchant.id,
       event_id: event.event_id,
       kind: event.kind,
+      order_external_id: event.order_external_id ?? null,
       payload: payloadJson,
       payload_hash: sha256(payloadJson),
       received_at: now(),
@@ -74,13 +75,14 @@ export function ingestEvent(ctx: DomainCtx, merchant: Merchant, event: Connector
       result: null,
     };
     ctx.db.prepare(
-      `INSERT INTO inbox_events (id, merchant_id, event_id, kind, payload, payload_hash, received_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO inbox_events (id, merchant_id, event_id, kind, order_external_id, payload, payload_hash, received_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       row.id,
       row.merchant_id,
       row.event_id,
       row.kind,
+      row.order_external_id,
       row.payload,
       row.payload_hash,
       row.received_at,

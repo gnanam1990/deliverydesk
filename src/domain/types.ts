@@ -213,6 +213,7 @@ export interface InboxEvent {
   merchant_id: string;
   event_id: string;
   kind: string;
+  order_external_id: string | null;
   payload: string;
   payload_hash: string;
   received_at: string;

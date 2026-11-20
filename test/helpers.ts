@@ -39,18 +39,19 @@ export async function boot(overrides: Partial<Config> = {}): Promise<TestEnv> {
   const app = buildApp(db, config);
   const server = await listen(app, 0);
   const { port } = server.address() as AddressInfo;
-  return {
+  const env: TestEnv = {
     dir,
     db,
     config,
     server,
     base: `http://127.0.0.1:${port}`,
     cleanup: async () => {
-      server.close();
-      db.close();
+      env.server.close();
+      env.db.close();
       rmSync(dir, { recursive: true, force: true });
     },
   };
+  return env;
 }
 
 /** Boot domain layer only — no HTTP. */

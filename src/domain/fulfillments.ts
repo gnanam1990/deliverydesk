@@ -9,12 +9,14 @@ import { enqueue, registerOutboxDispatcher } from './outbox.ts';
 import { hasArtifact, readArtifact, storeArtifact } from './artifacts.ts';
 import { appendCaseEvent } from './timeline.ts';
 import { fetchStatus, fetchArtifactBytes } from '../adapters/merchantService.ts';
+import { openReviewItem } from './review.ts';
 import type {
   Case,
   Fulfillment,
   FulfillmentState,
   Merchant,
   Order,
+  Refund,
 } from './types.ts';
 
 /**
@@ -201,7 +203,40 @@ export function applyStatus(
       source_event_id: sourceEventId,
     });
     if (state === 'ready' && artifactDigest) {
-      onReady(db, order.id, artifactDigest, p.revision);
+      // T-014: a ready report arriving after refund settlement preserves the
+      // settled disposition and sends the conflict to a person. It must not
+      // reopen a case or create any new entitlement.
+      const settledRefund = one<Refund>(
+        db,
+        "SELECT * FROM refunds WHERE order_id = ? AND state = 'settled'",
+        order.id,
+      );
+      if (settledRefund) {
+        const c = one<Case>(db, 'SELECT * FROM cases WHERE id = ?', settledRefund.case_id);
+        openReviewItem(db, {
+          merchantId: merchant.id,
+          orderId: order.id,
+          caseId: settledRefund.case_id,
+          kind: 'late_ready_after_refund',
+          reason: 'artifact became ready after refund settlement',
+          evidence: {
+            revision: p.revision,
+            artifactDigest,
+            sourceEventId,
+            refundId: settledRefund.id,
+            settlementRef: settledRefund.settlement_ref,
+          },
+        });
+        if (c) {
+          appendCaseEvent(db, c.id, 'connector', sourceEventId, 'fulfillment.late_ready_after_refund', {
+            revision: p.revision,
+            artifactDigest,
+            refundId: settledRefund.id,
+          });
+        }
+      } else {
+        onReady(db, order.id, artifactDigest, p.revision);
+      }
     }
     return `${state}:rev${p.revision}`;
   });

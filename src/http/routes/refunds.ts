@@ -12,6 +12,7 @@ import {
 } from '../../domain/refunds.ts';
 import { getCase } from '../../domain/cases.ts';
 import { listReviewItems, resolveReviewItem } from '../../domain/review.ts';
+import { fieldMetrics } from '../../domain/metrics.ts';
 import type { ReviewItem } from '../../domain/types.ts';
 
 const itemView = (i: ReviewItem) => ({
@@ -113,6 +114,11 @@ export function registerRefundRoutes(app: App): void {
       );
       return { status: 200, json: rows.map((r) => refundView(ctx.db, getRefund(ctx.db, r.id))) };
     },
+  });
+
+  app.route('GET', '/console/metrics', {
+    auth: { kind: 'operator' },
+    handler: (ctx) => ({ status: 200, json: fieldMetrics(ctx.db, ctx.actor!.merchantId!) }),
   });
 
   // Merchant review queue.
