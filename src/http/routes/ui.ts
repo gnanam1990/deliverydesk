@@ -4,6 +4,11 @@ import { renderLogin } from '../render.ts';
 
 /** Browser sign-in: exchanges an issued pilot token for an HttpOnly session cookie. */
 export function registerUiRoutes(app: App): void {
+  app.route('GET', '/', {
+    auth: { kind: 'none' },
+    handler: () => ({ status: 303, headers: { location: '/login' }, html: '' }),
+  });
+
   app.route('GET', '/login', {
     auth: { kind: 'none' },
     handler: () => ({ status: 200, html: renderLogin() }),

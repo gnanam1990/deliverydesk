@@ -22,7 +22,7 @@ if (!workerOnly) {
   const addr = server.address();
   const port = typeof addr === 'object' && addr ? addr.port : config.port;
   console.log(`[deliverydesk] api listening on http://127.0.0.1:${port}`);
-  console.log(`[deliverydesk] buyer console  http://127.0.0.1:${port}/`);
+  console.log(`[deliverydesk] buyer console  http://127.0.0.1:${port}/buyer`);
   console.log(`[deliverydesk] support console http://127.0.0.1:${port}/console`);
 }
 if (stopWorker) console.log(`[deliverydesk] worker polling every ${config.workerPollMs}ms`);
