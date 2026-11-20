@@ -1,7 +1,7 @@
 {
   "project": "DeliveryDesk",
   "packVersion": "1.0",
-  "testedSha": "b421e863f8cad22ff1d4999e75c5e315ba753609",
+  "testedSha": "cc0fd1548b2b56943a140c1ce827b89081e0dc27",
   "targetBranch": "devin/deliverydesk",
   "environment": {
     "os": "macOS arm64 (Darwin 27.2.0)",
@@ -107,11 +107,20 @@
     {
       "id": "M07",
       "title": "Connector reconciliation and field trial",
-      "state": "next",
+      "state": "accepted",
       "owner": "local-agent",
-      "commands": [],
-      "evidence": [],
-      "nextAction": "Replay omitted, duplicated, reordered and late merchant events through connector endpoints. Add metrics for unique resolved orders, second charges, time to retrieval and false closures."
+      "commands": [
+        "node --test test/m07-reconciliation.test.ts",
+        "node --test test/*.test.ts",
+        "npx --cache .npm-cache tsc --noEmit",
+        "node docs/build-pack/tools/check-build-pack.mjs --root docs/build-pack"
+      ],
+      "evidence": [
+        "T-013 PASS: webhook suppressed; worker status lookup recovered rev4, fetched artifact and delivered digest D after app/db restart; payment, fulfillment, artifact and event identities preserved; duplicate transfer did not charge; late rev3 stayed stale",
+        "T-014 PASS: late ready after settled refund opened late_ready_after_refund review item, preserved refunded disposition and issued zero access grants",
+        "METRICS PASS: /console/metrics reports uniqueResolvedOrders, secondCharges, duplicateTransferAttempts, timeToRetrieval, falseClosures and lateReadyReviewItems"
+      ],
+      "nextAction": "Final field-trial packaging: seed the reference E7/250-cent/rev4/3KB scenario, capture evidence, run clean-checkout verification, and record external-provider gaps"
     }
   ]
 }
