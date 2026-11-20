@@ -3,7 +3,7 @@
 Initial state: greenfield dedicated repository. One prior commit carried the
 specification pack only (`docs/build-pack/`); no implementation existed.
 
-- Target repository / branch / tested SHA: `deliverydesk` workspace, branch `devin/deliverydesk`, `079633ece9dad0f2ffdd40d9db325eb28cb3c67f`
+- Target repository / branch / tested SHA: `deliverydesk` workspace, branch `devin/deliverydesk`, `31b9198e92c25fe4351742391d86a9f26ae66f83`
 - Current state: M01–M07 accepted; local field-trial packaging complete. Remaining gap is external live-provider proof only.
 - Working tree requiring transfer: none after the final progress commit
 - Tested environment: macOS arm64 (Darwin 27.2.0), Node v22.23.1, SQLite via `node:sqlite`, zero runtime dependencies
@@ -45,6 +45,7 @@ Evidence: `build-progress/deliverydesk/evidence/acceptance-local.json`.
 - Current environment result: Chromium headless shell 1254 exists at the requested Playwright cache path, but this command sandbox denied Chromium's `MachPortRendezvousServer` bootstrap before launch. The concise blocked evidence is `build-progress/deliverydesk/evidence/browser-e7.json`; replay `DD_BROWSER_PATH=... npm run check:browser` on the host for normal-browser proof.
 - `6faf1ee`: host-browser feedback fixed the ambiguous Provider receipt locator by scoping it to the timeline card and asserting exactly one matching link.
 - `079633e`: host-browser keyboard feedback changed focus assertions to require named actionable controls, ignore body wrap stops, separately prove focus-cycle closure, and fail on any invisible actionable focus stop. Regression proof in this environment: `node --test test/m06-console.test.ts` passes `normal browser forms recover, download and acknowledge delivery`; `npm ci`, `npm run typecheck`, and `npm test` pass with 19 tests.
+- `31b9198`: focused workflow visual pass applied the warm KiteBridge/KiteWorkforce vocabulary in place — paper/ink/card/border tokens, olive primary actions, warm state badges, editorial headings, mono evidence values, clear `local-emulator` labels, visible focus and single-column 320px controls. Routes, native controls, form names and browser locators are preserved; no dependencies or AccessForge surfaces were added. `npm run typecheck`, `npm test` (20 pass / 0 fail), `git diff --check` and `impeccable detect --json --changed` pass; host browser verification remains with the owner.
 
 ## Remaining external proof gap
 

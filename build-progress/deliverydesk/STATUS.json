@@ -1,7 +1,7 @@
 {
   "project": "DeliveryDesk",
   "packVersion": "1.0",
-  "testedSha": "079633ece9dad0f2ffdd40d9db325eb28cb3c67f",
+  "testedSha": "31b9198e92c25fe4351742391d86a9f26ae66f83",
   "targetBranch": "devin/deliverydesk",
   "environment": {
     "os": "macOS arm64 (Darwin 27.2.0)",
@@ -103,6 +103,7 @@
         "T-012 PASS: injected refund timeout -> settlement_investigation; console and buyer pages show Pending investigation and no Refund settled/refunded claim",
         "EXTRA PASS: operator claim persists owner; mine=1 and stale=1 filters return the expected case in JSON and HTML queue",
         "BROWSER FORM PASS: normal HTML controls open E7, issue grant, download original artifact, acknowledge delivery and render Access denied HTML for cross-buyer access",
+        "VISUAL PASS: warm KiteBridge/KiteWorkforce tokens, olive primary actions, accessible secondary/error colors, editorial headings, mono evidence values, local-emulator labels and 320px single-column controls preserved all routes and form/browser selectors",
         "BROWSER ENVIRONMENT GATE: Chromium headless shell 1254 exists but sandbox denied MachPortRendezvousServer; portable Playwright Core check and replay instructions recorded in build-progress/deliverydesk/BROWSER.md"
       ],
       "nextAction": "M07: reconcile suppressed/duplicated/reordered/late events, preserve settlement and entitlement identities across restart, emit review item on late ready after refund, and expose field-trial metrics"
@@ -144,7 +145,8 @@
       "npm test \u2192 19 pass / 0 fail",
       "npm run check:browser \u2192 environment-blocked before launch; exact replay command in BROWSER.md",
       "host-browser locator review \u2192 timeline-scoped Provider receipt control fixed at 6faf1eed02c19ba6ddb5f227e25222dcba8d2da4",
-      "host-browser keyboard review \u2192 actionable-control focus assertions fixed at 079633ece9dad0f2ffdd40d9db325eb28cb3c67f"
+      "host-browser keyboard review \u2192 actionable-control focus assertions fixed at 079633ece9dad0f2ffdd40d9db325eb28cb3c67f",
+      "workflow visual pass \u2192 31b9198e92c25fe4351742391d86a9f26ae66f83; npm run typecheck, npm test (20 pass / 0 fail), git diff --check and impeccable detect pass"
     ],
     "evidence": "build-progress/deliverydesk/evidence/acceptance-local.json",
     "browser": {
