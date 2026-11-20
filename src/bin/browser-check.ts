@@ -268,9 +268,14 @@ async function main(): Promise<void> {
     record('operator timeline observes recovered order', positions.every((p) => p >= 0) && positions.every((p, i) => i === 0 || p > positions[i - 1]!), {
       timelineOrder: sequence,
     });
-    record('operator receipt evidence is exposed only on console', operatorText.includes('Provider receipt'));
+    const timelineReceipt = operatorPage
+      .locator('section[aria-labelledby="timeline-title"]')
+      .getByRole('link', { name: 'Provider receipt' });
+    record('operator receipt evidence is exposed only on console', operatorText.includes('Provider receipt') && (await timelineReceipt.count()) === 1, {
+      timelineReceiptLinks: await timelineReceipt.count(),
+    });
 
-    const receiptHref = await operatorPage.getByRole('link', { name: 'Provider receipt' }).getAttribute('href');
+    const receiptHref = await timelineReceipt.getAttribute('href');
     assert(receiptHref, 'operator receipt link missing');
     const receiptPage = await operatorPage.goto(`${base}${receiptHref}`, { waitUntil: 'load' });
     const receiptBody = await operatorPage.locator('body').innerText();
