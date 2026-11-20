@@ -1,0 +1,71 @@
+{
+  "project": "DeliveryDesk",
+  "packVersion": "1.0",
+  "testedSha": null,
+  "targetBranch": null,
+  "modules": [
+    {
+      "id": "M01",
+      "title": "Merchant enrollment and order identity",
+      "state": "pending",
+      "owner": null,
+      "commands": [],
+      "evidence": [],
+      "nextAction": "Configure one participating seller, tenant access rules, buyer order lookup and callback identity. Introduce merchant-scoped idempotent order storage."
+    },
+    {
+      "id": "M02",
+      "title": "Payment matching",
+      "state": "pending",
+      "owner": null,
+      "commands": [],
+      "evidence": [],
+      "nextAction": "Parse a verified connector receipt, normalize asset and amount, and join it to the original invoice and event reference."
+    },
+    {
+      "id": "M03",
+      "title": "Asynchronous fulfillment",
+      "state": "pending",
+      "owner": null,
+      "commands": [],
+      "evidence": [],
+      "nextAction": "Implement a persistent asynchronous export job and merchant status adapter. Track monotonic revisions and readable evidence-backed artifact references."
+    },
+    {
+      "id": "M04",
+      "title": "Case intake and redelivery",
+      "state": "pending",
+      "owner": null,
+      "commands": [],
+      "evidence": [],
+      "nextAction": "Deduplicate buyer cases, authorize same-buyer redelivery and implement short-lived grants to the original immutable artifact; record completion receipts or acknowledgment. Persist a fenced retrieval claim before streaming and record the authenticated digest receipt or buyer acknowledgment."
+    },
+    {
+      "id": "M05",
+      "title": "Refund decision and settlement",
+      "state": "pending",
+      "owner": null,
+      "commands": [],
+      "evidence": [],
+      "nextAction": "Build full-refund eligibility, merchant approval, revocation of unconsumed grants and serialized disposition. Track dispatch and settlement distinctly."
+    },
+    {
+      "id": "M06",
+      "title": "Support console and buyer timeline",
+      "state": "pending",
+      "owner": null,
+      "commands": [],
+      "evidence": [],
+      "nextAction": "Build case timeline, evidence-aware status, operator ownership, stale-case filters and buyer refresh. Include distinct proposed, authorized, pending and settled refund badges."
+    },
+    {
+      "id": "M07",
+      "title": "Connector reconciliation and field trial",
+      "state": "pending",
+      "owner": null,
+      "commands": [],
+      "evidence": [],
+      "nextAction": "Replay omitted, duplicated, reordered and late merchant events through connector endpoints. Add metrics for unique resolved orders, second charges, time to retrieval and false closures."
+    }
+  ]
+}
