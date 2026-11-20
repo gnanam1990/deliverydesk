@@ -16,5 +16,15 @@
     "grant bearer token",
     "provider secrets",
     "temporary data path"
-  ]
+  ],
+  "testedSha": "15c9e30e69970f9e75a2e19776c2721d01611685",
+  "verification": {
+    "command": "npm run check:browser",
+    "explicitBrowserCommand": "DD_BROWSER_PATH=\"$HOME/Library/Caches/ms-playwright/chromium_headless_shell-1254/chrome-headless-shell-mac-arm64/chrome-headless-shell\" npm run check:browser",
+    "setup": [
+      "npm ci"
+    ],
+    "hostBrowserProof": "pending host replay outside this command sandbox",
+    "regressionCoverage": "node --test test/m06-console.test.ts \u2192 normal browser forms recover, download and acknowledge delivery PASS"
+  }
 }

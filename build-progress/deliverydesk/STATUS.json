@@ -1,7 +1,7 @@
 {
   "project": "DeliveryDesk",
   "packVersion": "1.0",
-  "testedSha": "04478ec8195c3e4f9eaec92bf583793ded06441a",
+  "testedSha": "15c9e30e69970f9e75a2e19776c2721d01611685",
   "targetBranch": "devin/deliverydesk",
   "environment": {
     "os": "macOS arm64 (Darwin 27.2.0)",
@@ -95,12 +95,15 @@
       "commands": [
         "node --test test/m06-console.test.ts",
         "node --test test/*.test.ts",
-        "npx --cache .npm-cache tsc --noEmit"
+        "npx --cache .npm-cache tsc --noEmit",
+        "npm run check:browser"
       ],
       "evidence": [
         "T-011 PASS: operator HTML timeline shows Payment confirmed -> Export ready -> Artifact retrieved -> Delivery acknowledged; /console/payments/{id}/receipt evidence is linked for operators and denied to buyers",
         "T-012 PASS: injected refund timeout -> settlement_investigation; console and buyer pages show Pending investigation and no Refund settled/refunded claim",
-        "EXTRA PASS: operator claim persists owner; mine=1 and stale=1 filters return the expected case in JSON and HTML queue"
+        "EXTRA PASS: operator claim persists owner; mine=1 and stale=1 filters return the expected case in JSON and HTML queue",
+        "BROWSER FORM PASS: normal HTML controls open E7, issue grant, download original artifact, acknowledge delivery and render Access denied HTML for cross-buyer access",
+        "BROWSER ENVIRONMENT GATE: Chromium headless shell 1254 exists but sandbox denied MachPortRendezvousServer; portable Playwright Core check and replay instructions recorded in build-progress/deliverydesk/BROWSER.md"
       ],
       "nextAction": "M07: reconcile suppressed/duplicated/reordered/late events, preserve settlement and entitlement identities across restart, emit review item on late ready after refund, and expose field-trial metrics"
     },
@@ -135,8 +138,19 @@
       "DD_DATA_DIR=$PWD/.runtime DD_PORT=18081 npm start \u2192 normal entry point",
       "curl http://127.0.0.1:18081/ \u2192 303 /login",
       "DD_BASE=http://127.0.0.1:18081 npm run demo \u2192 exit 0",
-      "DD_DATA_DIR=$PWD/.runtime-migrate npm run migrate \u2192 schema version 2"
+      "DD_DATA_DIR=$PWD/.runtime-migrate npm run migrate \u2192 schema version 2",
+      "npm ci \u2192 exit 0 after playwright-core dev dependency",
+      "npm run typecheck \u2192 exit 0",
+      "npm test \u2192 19 pass / 0 fail",
+      "npm run check:browser \u2192 environment-blocked before launch; exact replay command in BROWSER.md"
     ],
-    "evidence": "build-progress/deliverydesk/evidence/acceptance-local.json"
+    "evidence": "build-progress/deliverydesk/evidence/acceptance-local.json",
+    "browser": {
+      "command": "DD_BROWSER_PATH=\"$HOME/Library/Caches/ms-playwright/chromium_headless_shell-1254/chrome-headless-shell-mac-arm64/chrome-headless-shell\" npm run check:browser",
+      "documentation": "build-progress/deliverydesk/BROWSER.md",
+      "evidence": "build-progress/deliverydesk/evidence/browser-e7.json",
+      "state": "runnable; blocked in this command sandbox before Chromium launch",
+      "missingProof": "host browser run outside the command sandbox"
+    }
   }
 }
