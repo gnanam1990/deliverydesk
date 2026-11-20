@@ -4,6 +4,7 @@ import { App } from './server.ts';
 import { registerCoreRoutes } from './routes/core.ts';
 import { registerConnectorRoutes } from './routes/connectors.ts';
 import { registerCaseRoutes } from './routes/cases.ts';
+import { registerRefundRoutes } from './routes/refunds.ts';
 import { registerDomainEventHandlers } from '../domain/events.ts';
 import type http from 'node:http';
 
@@ -14,6 +15,7 @@ export function buildApp(db: Db, config: Config): App {
   registerCoreRoutes(app);
   registerConnectorRoutes(app);
   registerCaseRoutes(app);
+  registerRefundRoutes(app);
   return app;
 }
 

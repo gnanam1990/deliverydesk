@@ -1,6 +1,7 @@
 import { registerEventHandler } from './inbox.ts';
 import { recordReceipt } from './payments.ts';
 import { applyMerchantStatus, registerArtifactFetchDispatcher } from './fulfillments.ts';
+import { registerRefundDispatchers } from './refunds.ts';
 
 let registered = false;
 
@@ -15,4 +16,5 @@ export function registerDomainEventHandlers(): void {
   registerEventHandler('payment.receipt', recordReceipt);
   registerEventHandler('fulfillment.status', applyMerchantStatus);
   registerArtifactFetchDispatcher();
+  registerRefundDispatchers();
 }

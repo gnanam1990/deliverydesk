@@ -148,6 +148,17 @@ export function issueGrant(
     if (!orderPaymentConfirmed(db, c.order_id)) {
       throw conflict('order has no confirmed payment');
     }
+    // INV-05: an in-flight or settled refund ends redelivery entitlement.
+    const blockingRefund = one<{ id: string; state: string }>(
+      db,
+      "SELECT id, state FROM refunds WHERE order_id = ? AND state IN ('authorized','dispatch_pending','dispatched','settlement_investigation','settled')",
+      c.order_id,
+    );
+    if (blockingRefund) {
+      throw conflict(`refund ${blockingRefund.state} — redelivery unavailable`, {
+        refundId: blockingRefund.id,
+      });
+    }
     const ready = isReady(db, c.order_id);
     if (!ready.ready) {
       throw conflict('fulfillment is not ready — nothing to redeliver yet', {
@@ -208,6 +219,17 @@ export function assertGrantUsable(db: Db, actor: Actor, grant: AccessGrant): voi
   if (grant.expires_at <= now()) {
     throw gone('grant expired — request a fresh redelivery grant');
   }
+}
+
+/** A confirmed retrieval = final delivery evidence for disposition rules. */
+export function confirmedRetrievalExists(db: Db, orderId: string): boolean {
+  return (
+    one<{ n: number }>(
+      db,
+      "SELECT COUNT(*) AS n FROM retrievals WHERE order_id = ? AND state = 'confirmed'",
+      orderId,
+    )!.n > 0
+  );
 }
 
 export function activeRetrievalForOrder(db: Db, orderId: string): Retrieval | undefined {
