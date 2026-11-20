@@ -1,7 +1,7 @@
 {
   "project": "DeliveryDesk",
   "packVersion": "1.0",
-  "testedSha": "6faf1eed02c19ba6ddb5f227e25222dcba8d2da4",
+  "testedSha": "079633ece9dad0f2ffdd40d9db325eb28cb3c67f",
   "targetBranch": "devin/deliverydesk",
   "environment": {
     "os": "macOS arm64 (Darwin 27.2.0)",
@@ -143,7 +143,8 @@
       "npm run typecheck \u2192 exit 0",
       "npm test \u2192 19 pass / 0 fail",
       "npm run check:browser \u2192 environment-blocked before launch; exact replay command in BROWSER.md",
-      "host-browser locator review \u2192 timeline-scoped Provider receipt control fixed at 6faf1eed02c19ba6ddb5f227e25222dcba8d2da4"
+      "host-browser locator review \u2192 timeline-scoped Provider receipt control fixed at 6faf1eed02c19ba6ddb5f227e25222dcba8d2da4",
+      "host-browser keyboard review \u2192 actionable-control focus assertions fixed at 079633ece9dad0f2ffdd40d9db325eb28cb3c67f"
     ],
     "evidence": "build-progress/deliverydesk/evidence/acceptance-local.json",
     "browser": {

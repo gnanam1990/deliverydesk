@@ -17,7 +17,7 @@
     "provider secrets",
     "temporary data path"
   ],
-  "testedSha": "6faf1eed02c19ba6ddb5f227e25222dcba8d2da4",
+  "testedSha": "079633ece9dad0f2ffdd40d9db325eb28cb3c67f",
   "verification": {
     "command": "npm run check:browser",
     "explicitBrowserCommand": "DD_BROWSER_PATH=\"$HOME/Library/Caches/ms-playwright/chromium_headless_shell-1254/chrome-headless-shell-mac-arm64/chrome-headless-shell\" npm run check:browser",
@@ -26,6 +26,7 @@
     ],
     "hostBrowserProof": "pending host replay outside this command sandbox",
     "regressionCoverage": "node --test test/m06-console.test.ts \u2192 normal browser forms recover, download and acknowledge delivery PASS",
-    "locatorFix": "Provider receipt is scoped to section[aria-labelledby=\"timeline-title\"] and asserted as exactly one timeline link"
+    "locatorFix": "Provider receipt is scoped to section[aria-labelledby=\"timeline-title\"] and asserted as exactly one timeline link",
+    "keyboardFix": "required named controls are asserted nonempty and keyboard reachable with visible focus; body wrap stops ignored; focus-cycle closure and zero invisible actionable stops asserted separately"
   }
 }
