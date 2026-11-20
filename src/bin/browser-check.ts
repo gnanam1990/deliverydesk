@@ -137,17 +137,41 @@ async function signIn(context: BrowserContext, base: string, audience: 'buyer' |
 async function focusedElement(page: Page): Promise<Record<string, unknown>> {
   return await page.evaluate(() => {
     const el = document.activeElement as HTMLElement | null;
-    if (!el) return { tag: null };
+    if (!el) return { tag: null, actionable: false };
     const style = getComputedStyle(el);
+    const actionable = el.matches('a[href], button, input, select, textarea, [tabindex]')
+      && !el.matches('[disabled], [aria-hidden="true"]')
+      && el.tabIndex >= 0;
     return {
       tag: el.tagName.toLowerCase(),
       id: el.id || null,
       name: el.getAttribute('name'),
-      text: (el.textContent ?? '').trim().slice(0, 80),
+      role: el.getAttribute('role'),
+      text: (el.textContent ?? el.getAttribute('value') ?? '').trim().slice(0, 80),
+      ariaLabel: el.getAttribute('aria-label'),
+      actionable,
       outlineStyle: style.outlineStyle,
       outlineWidth: style.outlineWidth,
     };
   });
+}
+
+function focusKey(stop: Record<string, unknown>): string {
+  return [stop['tag'], stop['id'], stop['name'], stop['text'], stop['ariaLabel']].map(String).join('|');
+}
+
+function stopMatches(stop: Record<string, unknown>, name: string): boolean {
+  return String(stop['text'] ?? '') === name || String(stop['ariaLabel'] ?? '') === name;
+}
+
+async function assertControlsExist(page: Page, requiredControls: string[]): Promise<void> {
+  assert(requiredControls.length > 0, 'keyboard check requires a nonempty expected control set');
+  for (const name of requiredControls) {
+    const control = page
+      .getByRole('link', { name, exact: true })
+      .or(page.getByRole('button', { name, exact: true }));
+    assert((await control.count()) > 0, `required keyboard control missing: ${name}`);
+  }
 }
 
 async function tabFocusEvidence(page: Page, count: number): Promise<Record<string, unknown>[]> {
@@ -157,6 +181,43 @@ async function tabFocusEvidence(page: Page, count: number): Promise<Record<strin
     stops.push(await focusedElement(page));
   }
   return stops;
+}
+
+async function keyboardTaskEvidence(page: Page, requiredControls: string[], maxPresses = 12): Promise<Record<string, unknown>> {
+  await assertControlsExist(page, requiredControls);
+  const stops: Record<string, unknown>[] = [];
+  const actionableKeys = new Set<string>();
+  const actionableStops: Record<string, unknown>[] = [];
+  const invisibleActionableStops: Record<string, unknown>[] = [];
+  let bodyFocusStops = 0;
+  let focusCycleClosed = false;
+  for (let i = 0; i < maxPresses; i++) {
+    await page.keyboard.press('Tab');
+    const stop = await focusedElement(page);
+    stops.push(stop);
+    if (stop['tag'] === 'body') {
+      bodyFocusStops++;
+      continue;
+    }
+    if (stop['actionable'] !== true) continue;
+    actionableStops.push(stop);
+    const key = focusKey(stop);
+    if (actionableKeys.has(key)) focusCycleClosed = true;
+    actionableKeys.add(key);
+    if (stop['outlineStyle'] === 'none' || stop['outlineWidth'] === '0px') {
+      invisibleActionableStops.push(stop);
+    }
+  }
+  const missing = requiredControls.filter((name) => !actionableStops.some((stop) => stopMatches(stop, name)));
+  return {
+    requiredControls,
+    stops,
+    actionableStops,
+    missingRequiredControls: missing,
+    invisibleActionableStops,
+    bodyFocusStops,
+    focusCycleClosed,
+  };
 }
 
 async function noHorizontalOverflow(page: Page): Promise<boolean> {
@@ -220,14 +281,20 @@ async function main(): Promise<void> {
     await buyerPage.getByRole('button', { name: 'Recover original export' }).click();
     await buyerPage.waitForURL(`**/cases/${caseId}/retrieve`);
     const retrievalText = await buyerPage.locator('body').innerText();
-    const retrievalTabs = await tabFocusEvidence(buyerPage, 5);
+    const retrievalKeyboard = await keyboardTaskEvidence(buyerPage, ['Download original export', 'Confirm export received']);
     record('authorized buyer receives short-lived grant page', retrievalText.includes(expectedDigest), {
-      retrievalFocusStops: retrievalTabs,
+      retrievalKeyboard,
     });
     record(
-      'retrieval controls are keyboard reachable',
-      retrievalTabs.some((s) => s['tag'] === 'a') && retrievalTabs.some((s) => s['tag'] === 'button'),
+      'retrieval controls are keyboard reachable with visible focus',
+      (retrievalKeyboard['missingRequiredControls'] as unknown[]).length === 0
+        && (retrievalKeyboard['invisibleActionableStops'] as unknown[]).length === 0,
     );
+    record(
+      'retrieval invisible actionable focus stops remain zero',
+      (retrievalKeyboard['invisibleActionableStops'] as unknown[]).length === 0,
+    );
+    record('retrieval focus traversal is not trapped', retrievalKeyboard['focusCycleClosed'] === true);
 
     const downloadPromise = buyerPage.waitForEvent('download');
     await buyerPage.getByRole('link', { name: 'Download original export' }).click();
@@ -294,14 +361,20 @@ async function main(): Promise<void> {
 
     await buyerPage.setViewportSize({ width: 320, height: 568 });
     await buyerPage.goto(`${base}/cases/${caseId}`, { waitUntil: 'load' });
-    const mobileTabs = await tabFocusEvidence(buyerPage, 4);
+    const mobileKeyboard = await keyboardTaskEvidence(buyerPage, ['Your cases', 'Sign out']);
     record('320px layout has no horizontal overflow', await noHorizontalOverflow(buyerPage), {
-      mobileFocusStops: mobileTabs,
+      mobileKeyboard,
     });
     record(
-      '320px keyboard focus is visible',
-      mobileTabs.filter((s) => s['tag'] !== null).every((s) => String(s['outlineStyle']) !== 'none' && String(s['outlineWidth']) !== '0px'),
+      '320px required controls are keyboard reachable with visible focus',
+      (mobileKeyboard['missingRequiredControls'] as unknown[]).length === 0
+        && (mobileKeyboard['invisibleActionableStops'] as unknown[]).length === 0,
     );
+    record(
+      '320px invisible actionable focus stops remain zero',
+      (mobileKeyboard['invisibleActionableStops'] as unknown[]).length === 0,
+    );
+    record('320px focus traversal is not trapped', mobileKeyboard['focusCycleClosed'] === true);
 
     await buyerBContext.close();
     await operatorContext.close();
