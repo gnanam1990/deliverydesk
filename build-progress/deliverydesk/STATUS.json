@@ -1,7 +1,7 @@
 {
   "project": "DeliveryDesk",
   "packVersion": "1.0",
-  "testedSha": "e5025f19ba8126c8d2a3a8ced15f93847696afff",
+  "testedSha": "b421e863f8cad22ff1d4999e75c5e315ba753609",
   "targetBranch": "devin/deliverydesk",
   "environment": {
     "os": "macOS arm64 (Darwin 27.2.0)",
@@ -90,17 +90,25 @@
     {
       "id": "M06",
       "title": "Support console and buyer timeline",
-      "state": "next",
+      "state": "accepted",
       "owner": "local-agent",
-      "commands": [],
-      "evidence": [],
-      "nextAction": "Build case timeline, evidence-aware status, operator ownership, stale-case filters and buyer refresh. Include distinct proposed, authorized, pending and settled refund badges."
+      "commands": [
+        "node --test test/m06-console.test.ts",
+        "node --test test/*.test.ts",
+        "npx --cache .npm-cache tsc --noEmit"
+      ],
+      "evidence": [
+        "T-011 PASS: operator HTML timeline shows Payment confirmed -> Export ready -> Artifact retrieved -> Delivery acknowledged; /console/payments/{id}/receipt evidence is linked for operators and denied to buyers",
+        "T-012 PASS: injected refund timeout -> settlement_investigation; console and buyer pages show Pending investigation and no Refund settled/refunded claim",
+        "EXTRA PASS: operator claim persists owner; mine=1 and stale=1 filters return the expected case in JSON and HTML queue"
+      ],
+      "nextAction": "M07: reconcile suppressed/duplicated/reordered/late events, preserve settlement and entitlement identities across restart, emit review item on late ready after refund, and expose field-trial metrics"
     },
     {
       "id": "M07",
       "title": "Connector reconciliation and field trial",
-      "state": "pending",
-      "owner": null,
+      "state": "next",
+      "owner": "local-agent",
       "commands": [],
       "evidence": [],
       "nextAction": "Replay omitted, duplicated, reordered and late merchant events through connector endpoints. Add metrics for unique resolved orders, second charges, time to retrieval and false closures."
