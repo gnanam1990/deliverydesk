@@ -1,7 +1,7 @@
 {
   "project": "DeliveryDesk",
   "packVersion": "1.0",
-  "testedSha": "888d2fe9d168806b4b7489b02d68e162e3043a35",
+  "testedSha": "e5025f19ba8126c8d2a3a8ced15f93847696afff",
   "targetBranch": "devin/deliverydesk",
   "environment": {
     "os": "macOS arm64 (Darwin 27.2.0)",
@@ -73,17 +73,25 @@
     {
       "id": "M05",
       "title": "Refund decision and settlement",
-      "state": "active",
+      "state": "accepted",
       "owner": "local-agent",
-      "commands": [],
-      "evidence": [],
-      "nextAction": "Build full-refund eligibility, merchant approval, revocation of unconsumed grants and serialized disposition. Track dispatch and settlement distinctly."
+      "commands": [
+        "node --test test/m05-refunds.test.ts",
+        "node --test test/*.test.ts",
+        "npx --cache .npm-cache tsc --noEmit"
+      ],
+      "evidence": [
+        "T-009 PASS: failed export + confirmed 250 USD-cent payment -> proposal -> finance approval -> exactly one provider dispatch -> provider-settled -> case refunded; support-only approval denied",
+        "T-010 PASS: in-flight retrieval serializes dispatch; buyer digest receipt lands first -> refund declined, zero provider calls, case delivered",
+        "EXTRA PASS: interrupted retrieval defers dispatch; operator reconciliation abandons it -> dispatch proceeds and settlement reaches refunded"
+      ],
+      "nextAction": "M06: server-rendered support console and buyer timeline with ownership/stale filters, provider receipt links and distinct proposed/authorized/pending/settled refund badges"
     },
     {
       "id": "M06",
       "title": "Support console and buyer timeline",
-      "state": "pending",
-      "owner": null,
+      "state": "next",
+      "owner": "local-agent",
       "commands": [],
       "evidence": [],
       "nextAction": "Build case timeline, evidence-aware status, operator ownership, stale-case filters and buyer refresh. Include distinct proposed, authorized, pending and settled refund badges."
